@@ -10,6 +10,7 @@ import { buttonStyles } from "@/components/ui/button";
 import { StatusTimeline } from "@/components/applications/status-timeline";
 import { LiveRefresh } from "@/components/applications/live-refresh";
 import { deleteDraft } from "../apply/actions";
+import { inEventZone } from "@/lib/event";
 
 export const metadata: Metadata = { title: "My applications" };
 
@@ -83,7 +84,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                     <div className="flex flex-wrap items-center gap-5">
                       <span className="text-[13px] text-muted">
                         {done} of {sections.length} sections ·{" "}
-                        {new Date(application.updated_at).toLocaleDateString("en-US", {
+                        {inEventZone(application.updated_at, {
                           month: "short",
                           day: "numeric",
                         })}

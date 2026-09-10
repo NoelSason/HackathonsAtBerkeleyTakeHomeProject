@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { requestInsight } from "@/app/organizer/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { inEventZone } from "@/lib/event";
 
 export type StoredInsight = {
   summary: string;
@@ -61,7 +62,7 @@ export function InsightPanel({
         {insight && (
           <p className="font-mono text-[11px] text-faint">
             {insight.model} ·{" "}
-            {new Date(insight.generated_at).toLocaleString("en-US", {
+            {inEventZone(insight.generated_at, {
               month: "short",
               day: "numeric",
               hour: "numeric",

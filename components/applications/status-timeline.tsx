@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn";
 import type { Database } from "@/lib/database.types";
+import { inEventZone } from "@/lib/event";
 
 type Status = Database["public"]["Enums"]["application_status"];
 
@@ -24,7 +25,7 @@ const STEP_INDEX: Record<Status, number> = {
 
 function shortDateTime(value: string | null): string | null {
   if (!value) return null;
-  return new Date(value).toLocaleString("en-US", {
+  return inEventZone(value, {
     month: "short",
     day: "numeric",
     hour: "numeric",

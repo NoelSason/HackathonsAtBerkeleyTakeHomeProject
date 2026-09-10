@@ -2,10 +2,16 @@ import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { buttonStyles } from "@/components/ui/button";
 import { APPLICATION_ROLES, ROLE_COPY } from "@/lib/applications/roles";
-import { EVENT, TIMELINE } from "@/lib/event";
+import { EVENT, timelineAt } from "@/lib/event";
 import { cn } from "@/lib/cn";
 
+// Whether a milestone has passed is read from the clock, so the page is
+// cached for an hour rather than baked in at build time.
+export const revalidate = 3600;
+
 export default function LandingPage() {
+  const timeline = timelineAt(new Date());
+
   return (
     <>
       <header className="border-b border-line">
@@ -85,7 +91,7 @@ export default function LandingPage() {
           <h2 className="text-[22px] font-bold tracking-tight">Key dates</h2>
 
           <ol className="mt-9 grid gap-8 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
-            {TIMELINE.map((item) => (
+            {timeline.map((item) => (
               <li key={item.label} className="relative lg:pt-4">
                 {/* The rule only reads as a timeline when the items sit in one
                     row, so it is drawn at the wide breakpoint only. */}

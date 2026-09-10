@@ -9,6 +9,7 @@ import { ROLE_COPY } from "@/lib/applications/roles";
 import { StatusBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import type { ApplicationSummary } from "@/lib/applications/summary";
+import { inEventZone } from "@/lib/event";
 
 const GRID =
   "grid grid-cols-[2.75rem_1.4fr_1.2fr_5.5rem_9.5rem_5rem_6rem_5rem_8rem] items-center gap-2";
@@ -76,40 +77,6 @@ export function ApplicationsTable({
 
   return (
     <div>
-      {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-4 border-b border-line bg-berkeley-soft px-4 py-2.5 text-[13px] sm:px-8">
-          <span className="font-bold text-berkeley">{selected.size} selected</span>
-
-          {isDirector ? (
-            <div className="flex flex-wrap gap-2">
-              <BulkButton tone="positive" disabled={isPending} onClick={() => decide("accepted")}>
-                ✓ Accept
-              </BulkButton>
-              <BulkButton tone="warning" disabled={isPending} onClick={() => decide("waitlisted")}>
-                ⋯ Waitlist
-              </BulkButton>
-              <BulkButton tone="danger" disabled={isPending} onClick={() => decide("rejected")}>
-                ✕ Reject
-              </BulkButton>
-            </div>
-          ) : (
-            // Reviewers see why the controls are missing rather than a gap.
-            // The database would refuse them anyway; this explains it.
-            <span className="text-muted">Decisions are made by directors.</span>
-          )}
-
-          {error && <span className="font-medium text-danger">{error}</span>}
-
-          <button
-            type="button"
-            onClick={() => setSelected(new Set())}
-            className="text-muted transition-colors hover:text-ink"
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
-
       <div
         className={cn(
           GRID,
@@ -208,7 +175,7 @@ export function ApplicationsTable({
 
               <div className="text-right font-mono text-[12px] text-faint">
                 {row.submittedAt
-                  ? new Date(row.submittedAt).toLocaleString("en-US", {
+                  ? inEventZone(row.submittedAt, {
                       month: "short",
                       day: "2-digit",
                       hour: "2-digit",
@@ -226,6 +193,45 @@ export function ApplicationsTable({
         <p className="px-8 py-16 text-center text-sm text-muted">
           No applications match these filters.
         </p>
+      )}
+
+      {/* Anchored to the bottom of the viewport rather than inserted above the
+          table. Inserted, it pushed every row down the moment the first
+          checkbox was ticked, so the second click landed on the row that had
+          moved into place under the cursor. Sticky also keeps the actions
+          reachable while selecting down a long list. */}
+      {selected.size > 0 && (
+        <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-4 border-t border-line bg-berkeley-soft px-4 py-2.5 text-[13px] shadow-[0_-1px_0_var(--color-line)] sm:px-8">
+          <span className="font-bold text-berkeley">{selected.size} selected</span>
+
+          {isDirector ? (
+            <div className="flex flex-wrap gap-2">
+              <BulkButton tone="positive" disabled={isPending} onClick={() => decide("accepted")}>
+                ✓ Accept
+              </BulkButton>
+              <BulkButton tone="warning" disabled={isPending} onClick={() => decide("waitlisted")}>
+                ⋯ Waitlist
+              </BulkButton>
+              <BulkButton tone="danger" disabled={isPending} onClick={() => decide("rejected")}>
+                ✕ Reject
+              </BulkButton>
+            </div>
+          ) : (
+            // Reviewers see why the controls are missing rather than a gap.
+            // The database would refuse them anyway; this explains it.
+            <span className="text-muted">Decisions are made by directors.</span>
+          )}
+
+          {error && <span className="font-medium text-danger">{error}</span>}
+
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="text-muted transition-colors hover:text-ink"
+          >
+            Clear selection
+          </button>
+        </div>
       )}
     </div>
   );

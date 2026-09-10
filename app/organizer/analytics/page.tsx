@@ -4,6 +4,7 @@ import { fetchAnalytics, type Analytics } from "@/lib/applications/analytics";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
 import { ROLE_COPY, isApplicationRole } from "@/lib/applications/roles";
 import { cn } from "@/lib/cn";
+import { inEventZone } from "@/lib/event";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -30,7 +31,12 @@ export default async function AnalyticsPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-[22px] font-extrabold tracking-tight">Applications overview</h1>
         <p className="font-mono text-[12px] text-muted">
-          UPDATED {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+          UPDATED{" "}
+          {inEventZone(new Date(), {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZoneName: "short",
+          })}
         </p>
       </div>
 
@@ -144,7 +150,7 @@ function WeeklyVolume({ weeks }: { weeks: Analytics["by_week"] }) {
       <div className="mt-2 flex gap-2.5 font-mono text-[11px] text-faint">
         {weeks.map((week) => (
           <span key={week.week} className="flex-1 text-center">
-            {new Date(week.week).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {inEventZone(week.week, { month: "short", day: "numeric" })}
           </span>
         ))}
       </div>

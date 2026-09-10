@@ -11,6 +11,7 @@ import { ApplicationAnswers } from "@/components/organizer/application-answers";
 import { GradeForm } from "@/components/organizer/grade-form";
 import { DecisionControls } from "@/components/organizer/decision-controls";
 import { InsightPanel, type StoredInsight } from "@/components/organizer/insight-panel";
+import { inEventZone } from "@/lib/event";
 
 export const metadata: Metadata = { title: "Application" };
 
@@ -68,7 +69,13 @@ export default async function ApplicationDetailPage({
       </div>
 
       <div className="flex flex-col lg:flex-row">
-        <div className="flex-1 border-line px-4 py-9 sm:px-8 lg:border-r">
+        {/* min-w-0 is load-bearing. A flex item defaults to min-width:auto, so
+            it refuses to shrink below its widest child — and the reading aid
+            renders raw repository JSON in a <pre>, which does not wrap. Without
+            this the column grew to the width of the longest line and gave the
+            whole page a horizontal scrollbar tens of thousands of pixels wide,
+            pushing the reviews out of view. */}
+        <div className="min-w-0 flex-1 border-line px-4 py-9 sm:px-8 lg:border-r">
           <p className="font-mono text-[11px] tracking-[0.08em] text-faint">BASICS</p>
 
           <dl className="mt-3.5 grid gap-5 border-b border-line pb-7 sm:grid-cols-3">
@@ -84,7 +91,7 @@ export default async function ApplicationDetailPage({
               <dt className="text-[12px] text-faint">Submitted</dt>
               <dd className="mt-0.5 text-sm font-medium">
                 {application.submittedAt
-                  ? new Date(application.submittedAt).toLocaleString("en-US", {
+                  ? inEventZone(application.submittedAt, {
                       month: "short",
                       day: "numeric",
                       hour: "numeric",
@@ -144,7 +151,7 @@ export default async function ApplicationDetailPage({
                   <p className="mt-1.5 text-[13px] leading-snug text-muted">{review.notes}</p>
                 )}
                 <p className="mt-2 font-mono text-[11px] text-faint">
-                  {new Date(review.created_at).toLocaleString("en-US", {
+                  {inEventZone(review.created_at, {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
