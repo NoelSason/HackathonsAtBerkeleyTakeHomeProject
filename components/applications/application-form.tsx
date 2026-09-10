@@ -65,14 +65,6 @@ export function ApplicationForm({
     return () => clearTimeout(timer);
   }, [responses, applicationId, role]);
 
-  // "Saved 12s ago" has to keep counting up on its own; nothing else would
-  // re-render this while the applicant is reading rather than typing.
-  const [, forceTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => forceTick((value) => value + 1), 10_000);
-    return () => clearInterval(interval);
-  }, []);
-
   function update(fieldId: string, value: FieldValue) {
     dirty.current = true;
     setResponses((current) => ({ ...current, [fieldId]: value }));
@@ -280,15 +272,43 @@ function SaveIndicator({ status, savedAt }: { status: SaveStatus; savedAt: Date 
     );
   }
 
-  const seconds = Math.round((Date.now() - savedAt.getTime()) / 1000);
-  const ago = seconds < 10 ? "just now" : seconds < 60 ? `${seconds}s ago` : `${Math.round(seconds / 60)}m ago`;
-
   return (
     <span role="status" className="flex items-center gap-2 font-mono text-[12px] text-muted">
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-positive" />
-      Saved {ago}
+      Saved <RelativeTime since={savedAt} />
     </span>
   );
+}
+
+/**
+ * "12s ago", kept current by its own timer.
+ *
+ * The elapsed time is held in state and recomputed on an interval rather
+ * than read during render. Calling Date.now() in a render body makes the
+ * output depend on whenever React happens to re-render, which is both
+ * unpredictable and the impurity the rules-of-react lint rejects.
+ */
+function RelativeTime({ since }: { since: Date }) {
+  const [label, setLabel] = useState("just now");
+
+  useEffect(() => {
+    function update() {
+      const seconds = Math.round((Date.now() - since.getTime()) / 1000);
+      setLabel(
+        seconds < 10
+          ? "just now"
+          : seconds < 60
+            ? `${seconds}s ago`
+            : `${Math.round(seconds / 60)}m ago`,
+      );
+    }
+
+    update();
+    const interval = setInterval(update, 10_000);
+    return () => clearInterval(interval);
+  }, [since]);
+
+  return <>{label}</>;
 }
 
 function ReviewStep({
