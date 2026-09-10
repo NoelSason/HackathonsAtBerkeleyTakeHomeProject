@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { buttonStyles } from "@/components/ui/button";
 import { StatusTimeline } from "@/components/applications/status-timeline";
 import { LiveRefresh } from "@/components/applications/live-refresh";
-import { deleteDraft } from "../apply/actions";
+import { DiscardDraft } from "@/components/applications/discard-draft";
 import { inEventZone } from "@/lib/event";
 
 export const metadata: Metadata = { title: "My applications" };
@@ -101,15 +101,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                           day: "numeric",
                         })}
                       </span>
-                      <form action={deleteDraft}>
-                        <input type="hidden" name="application_id" value={application.id} />
-                        <button
-                          type="submit"
-                          className="text-[13px] text-muted transition-colors hover:text-danger"
-                        >
-                          Discard
-                        </button>
-                      </form>
+                      <DiscardDraft applicationId={application.id} />
                       <Link
                         href={`/apply/${application.role}`}
                         className={buttonStyles("primary", "sm")}

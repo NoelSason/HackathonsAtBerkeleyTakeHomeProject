@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { startApplication } from "@/app/(portal)/apply/actions";
 import { APPLICATION_ROLES, ROLE_COPY, type ApplicationRole } from "@/lib/applications/roles";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
@@ -73,10 +74,29 @@ export function RolePicker({ existing }: { existing: Partial<Record<ApplicationR
       </ul>
 
       <div className="mt-9 flex justify-end">
-        <Button type="submit" className="h-11 px-9">
-          {existing[selected] ? "Open" : "Start"} {ROLE_COPY[selected].label.toLowerCase()} application
-        </Button>
+        <StartButton label={`${existing[selected] ? "Open" : "Start"} ${ROLE_COPY[selected].label.toLowerCase()} application`} />
       </div>
     </form>
+  );
+}
+
+/**
+ * Says something while the server action runs.
+ *
+ * Starting an application writes a row and then redirects, which takes a
+ * second or two on a cold function. Without this the button simply sat there
+ * looking broken, and the natural response to a button that does nothing is
+ * to click it again.
+ *
+ * useFormStatus has to read from a child of the form, which is the only
+ * reason this is a separate component.
+ */
+function StartButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" disabled={pending} className="h-11 px-9">
+      {pending ? "Opening…" : label}
+    </Button>
   );
 }

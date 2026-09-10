@@ -93,4 +93,15 @@
     outline-offset: 2px;
     border-radius: 3px;
   }
+
+  /* Tailwind v3's preflight put cursor: pointer on buttons; v4 dropped it to
+     match the browser default. Every button in this portal is a thing you
+     click, so the pointer is restored once here rather than as a utility
+     repeated on each of them — and it covers the plain <button> elements
+     that do not go through the Button primitive, like the score keys and the
+     sort headers. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
