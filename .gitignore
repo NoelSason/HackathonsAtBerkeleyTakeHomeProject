@@ -14,7 +14,9 @@
 /coverage
 
 # next.js
-/.next/
+# Glob rather than /.next/ so a file-sync tool duplicating the build directory
+# as ".next 2" is ignored too, instead of turning up as untracked.
+/.next*
 /out/
 
 # production

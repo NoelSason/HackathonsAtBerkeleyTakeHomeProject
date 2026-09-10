@@ -140,14 +140,29 @@ describe.skipIf(!hasLiveProject)("row-level security", () => {
      * claims to be testing, so it holds none, and pays for that by leaving
      * this one transition to the browser.
      */
-    it("cannot accept their own draft either", async () => {
+    it("cannot accept their own draft either", async (context) => {
+      // Depends on the demo applicant still holding a draft, and the demo
+      // accounts are public — anyone clicking through the deployed site can
+      // submit it. Skip loudly rather than fail, because "somebody used the
+      // demo" is not a broken policy.
+      const { data: draft } = await applicant
+        .from("applications")
+        .select("id")
+        .eq("status", "draft")
+        .limit(1)
+        .maybeSingle();
+
+      if (!draft) {
+        context.skip("The demo applicant has no draft right now. Run npm run seed.");
+        return;
+      }
+
       // Here USING passes, because a draft is a row they may edit. WITH CHECK
       // is what refuses the value they tried to write.
       const { error } = await applicant
         .from("applications")
         .update({ status: "accepted" })
-        .eq("user_id", applicantId)
-        .eq("status", "draft")
+        .eq("id", draft.id)
         .select("id");
 
       expect(error?.code).toBe("42501");
