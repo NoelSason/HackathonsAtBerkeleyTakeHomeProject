@@ -110,6 +110,32 @@ export type Database = {
           },
         ]
       }
+      insight_usage: {
+        Row: {
+          count: number
+          day: string
+          reviewer_id: string
+        }
+        Insert: {
+          count?: number
+          day?: string
+          reviewer_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insight_usage_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -244,6 +270,10 @@ export type Database = {
       }
     }
     Functions: {
+      claim_insight_budget: {
+        Args: { p_application_id: string }
+        Returns: number
+      }
       is_director: { Args: never; Returns: boolean }
       organizer_analytics: { Args: { p_targets: Json }; Returns: Json }
       save_application_insight: {
