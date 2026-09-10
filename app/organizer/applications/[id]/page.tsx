@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { ApplicationAnswers } from "@/components/organizer/application-answers";
 import { GradeForm } from "@/components/organizer/grade-form";
 import { DecisionControls } from "@/components/organizer/decision-controls";
+import { InsightPanel, type StoredInsight } from "@/components/organizer/insight-panel";
 
 export const metadata: Metadata = { title: "Application" };
 
@@ -20,13 +21,18 @@ export default async function ApplicationDetailPage({
   const profile = await requireOrganizer();
   const supabase = await createClient();
 
-  const [{ data: raw }, { data: reviewRows }] = await Promise.all([
+  const [{ data: raw }, { data: reviewRows }, { data: insightRow }] = await Promise.all([
     supabase.from("application_summary").select(SUMMARY_COLUMNS).eq("id", id).maybeSingle(),
     supabase
       .from("reviews")
       .select("score, notes, created_at, reviewer_id, reviewer:profiles!reviews_reviewer_id_fkey(full_name)")
       .eq("application_id", id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("application_insights")
+      .select("summary, specificity, specificity_reason, repo_url, repo_stats, repo_findings, model, generated_at")
+      .eq("application_id", id)
+      .maybeSingle(),
   ]);
 
   const application = raw ? toSummary(raw) : null;
@@ -35,6 +41,12 @@ export default async function ApplicationDetailPage({
   const reviews = reviewRows ?? [];
   const mine = reviews.find((review) => review.reviewer_id === profile.id);
   const required = APPLICATION_FORMS[application.role].reviewsRequired;
+
+  // A reviewer sees the reading aid only after recording their own judgement,
+  // for the same reason the queue gates revealing an applicant's identity.
+  // Directors are deciding rather than blind-reading, so it is open to them.
+  const canGenerate = Boolean(mine) || profile.staff_role === "director";
+  const insight = toStoredInsight(insightRow);
 
   return (
     <div>
@@ -86,6 +98,12 @@ export default async function ApplicationDetailPage({
           <div className="mt-1">
             <ApplicationAnswers role={application.role} responses={application.responses} />
           </div>
+
+          <InsightPanel
+            applicationId={application.id}
+            insight={insight}
+            canGenerate={canGenerate}
+          />
         </div>
 
         <aside className="bg-ground px-4 py-8 sm:px-8 lg:w-105">
@@ -161,4 +179,50 @@ export default async function ApplicationDetailPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Narrows the stored insight row into the shape the panel renders.
+ *
+ * `repo_stats` and `repo_findings` are jsonb, so they arrive typed as `Json`.
+ * Rather than assert them into place, this checks the two fields the panel
+ * actually reaches into and drops anything malformed, so a row written by an
+ * older version of the generator degrades to "no repository section" instead
+ * of throwing mid-render.
+ */
+function toStoredInsight(row: {
+  summary: string;
+  specificity: number;
+  specificity_reason: string;
+  repo_url: string | null;
+  repo_stats: unknown;
+  repo_findings: unknown;
+  model: string;
+  generated_at: string;
+} | null): StoredInsight | null {
+  if (!row) return null;
+
+  const findings = row.repo_findings;
+  const isFindings =
+    typeof findings === "object" &&
+    findings !== null &&
+    Array.isArray((findings as { corroborates?: unknown }).corroborates) &&
+    Array.isArray((findings as { adds?: unknown }).adds) &&
+    Array.isArray((findings as { discrepancies?: unknown }).discrepancies);
+
+  return {
+    summary: row.summary,
+    specificity: row.specificity,
+    specificity_reason: row.specificity_reason,
+    repo_url: row.repo_url,
+    repo_stats:
+      typeof row.repo_stats === "object" && row.repo_stats !== null
+        ? (row.repo_stats as Record<string, unknown>)
+        : null,
+    repo_findings: isFindings
+      ? (findings as { corroborates: string[]; adds: string[]; discrepancies: string[] })
+      : null,
+    model: row.model,
+    generated_at: row.generated_at,
+  };
 }
