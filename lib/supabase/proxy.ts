@@ -69,8 +69,18 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && AUTH_PATHS.includes(pathname)) {
+    // Send them wherever they actually work. The extra read only happens when
+    // somebody already signed in navigates back to the sign-in page, which is
+    // rare enough not to be worth caching, and landing a director on an empty
+    // applicant dashboard is worse than one query.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("staff_role")
+      .eq("id", user.id)
+      .single();
+
     const home = request.nextUrl.clone();
-    home.pathname = "/dashboard";
+    home.pathname = profile?.staff_role ? "/organizer/applications" : "/dashboard";
     home.search = "";
     return NextResponse.redirect(home);
   }

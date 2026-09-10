@@ -7,11 +7,29 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuthState } from "@/lib/auth-form-state";
 
-/** Only ever redirect within this app, never to a host an attacker supplied. */
-function safeNext(value: FormDataEntryValue | null): string {
+/**
+ * The path the proxy remembered, if it is safe to send somebody to.
+ *
+ * Only ever within this app: a `next` beginning `//` is a protocol-relative
+ * URL and would take them to another host entirely. Returns null when there
+ * is nothing usable, so the caller picks a destination by role instead.
+ */
+function safeNext(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
     ? value
-    : "/dashboard";
+    : null;
+}
+
+/**
+ * Where somebody lands when they have not asked for anywhere in particular.
+ *
+ * An organizer signing in wants the applications pile, not their own empty
+ * applicant dashboard. Sign-up has always routed by role; sign-in sent
+ * everyone to /dashboard, which was invisible only while a bug there showed
+ * organizers the whole pile anyway.
+ */
+function homeFor(staffRole: string | null): string {
+  return staffRole === null ? "/dashboard" : "/organizer/applications";
 }
 
 /*
@@ -46,7 +64,7 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     // Deliberately vague. Saying "no account with that email" would turn this
@@ -54,7 +72,18 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
     return { error: "That email and password do not match an account.", notice: null };
   }
 
-  redirect(safeNext(formData.get("next")));
+  // An explicit destination wins, so /sign-in?next=/organizer/analytics still
+  // lands where the proxy intended. Otherwise it depends on who signed in.
+  const next = safeNext(formData.get("next"));
+  if (next) redirect(next);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("staff_role")
+    .eq("id", data.user.id)
+    .single();
+
+  redirect(homeFor(profile?.staff_role ?? null));
 }
 
 /*
