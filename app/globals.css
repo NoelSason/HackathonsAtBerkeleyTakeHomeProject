@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ *
+ * Tailwind v4 reads this block and generates matching utilities, so
+ * `--color-ground` here becomes `bg-ground`, `text-ground`, `border-ground`.
+ * Defining the palette once means a colour never gets hand-typed into a
+ * component, and the whole portal can be re-skinned from this file.
+ */
+@theme {
+  /* Surfaces, lightest to darkest. */
+  --color-ground: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-sunken: #f4f2ed;
+
+  /* Text, strongest to weakest. */
+  --color-ink: #12161c;
+  --color-muted: #5a6270;
+  --color-faint: #8a919c;
+
+  /* Hairlines and dividers. */
+  --color-line: #e4e0d8;
+  --color-line-strong: #cfc9be;
+
+  /* Berkeley Blue carries every primary action. */
+  --color-berkeley: #003262;
+  --color-berkeley-deep: #00243f;
+  --color-berkeley-soft: #e8eef4;
+
+  /* California Gold is an accent only: marks, focus rings, status dots.
+     It never fills a large area and never sets text on a light ground —
+     #FDB515 on white is roughly 1.7:1, far below the 4.5:1 needed for
+     body copy. `gold-deep` is the readable variant for that case. */
+  --color-gold: #fdb515;
+  --color-gold-soft: #fff6e0;
+  --color-gold-deep: #8a6100;
+
+  /* Status colours. Each pairs a readable foreground with a tinted fill. */
+  --color-positive: #1f7a4d;
+  --color-positive-soft: #e6f4ec;
+  --color-warning: #9a6400;
+  --color-warning-soft: #fff4dc;
+  --color-danger: #a32b24;
+  --color-danger-soft: #fbeae8;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+}
+
+@layer base {
+  /*
+   * The portal is light-only by choice. Declaring `color-scheme: light`
+   * stops the browser from tinting form controls and scrollbars dark when
+   * the visitor's OS is in dark mode, which is what makes an unthemed
+   * light page look broken rather than simply light.
+   */
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-ink);
+  }
+
+  /* One focus treatment for the entire portal. Gold reads clearly against
+     both the off-white ground and the blue buttons. */
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
