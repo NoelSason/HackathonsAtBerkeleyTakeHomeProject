@@ -114,6 +114,41 @@ Rosa's single 5 came from the most generous reviewer, whose own average is
 4.4. Amara's *lowest* score was a 4 from the harshest reviewer, whose average
 is 2.9. Calibrated, Amara moves ahead.
 
+### The reading aid
+
+The detail page can also read an application with Claude and, when the
+applicant linked a GitHub repository, compare what they wrote against what
+the repository actually contains. It reports three things separately: what
+the repository backs up, what it shows that the essay never mentioned, and
+where the two actively conflict.
+
+Three constraints shape it, all because this reads real people's
+applications:
+
+- **It never scores, ranks or recommends.** A number here would anchor the
+  reviewer, which is the exact failure the blind queue exists to prevent.
+- **Specificity is defined as evidence density, not merit.** A plain account
+  of one small real thing rates above a polished essay of unfalsifiable
+  claims. The label on screen says so, so nobody reads it as a grade.
+- **The raw repository facts are shown alongside**, so a reviewer checks the
+  model's reading rather than trusting it.
+
+It is gated on the reviewer having already submitted their own score, unless
+they are a director. Same principle as revealing identity in the queue: form
+your own judgement first. It is deliberately absent from the blind queue
+entirely.
+
+Two implementation notes. Applicant answers are fenced and labelled as data
+before entering the prompt, since they are a text field a stranger filled in;
+the instructions also state the model never scores, so a successful injection
+has nothing useful to ask for. And the repository URL is parsed strictly:
+only a `github.com` repository path is accepted, which is what stops a
+portfolio field reading `http://169.254.169.254/latest/meta-data/` from
+having the server fetch cloud metadata.
+
+Results are cached per application rather than regenerated per view, so two
+reviewers read identical text.
+
 Also built: draft autosave, a live applicant status timeline that updates
 without a refresh, filterable organizer search with shareable URLs, bulk
 decisions, CSV export, and an analytics page.
@@ -153,6 +188,7 @@ app/(portal)/      applicant side: role picker, application form, dashboard
 app/organizer/     applications table, detail, review queue, analytics
 components/ui/     the seven primitives everything else is built from
 lib/applications/  form registry, query builder, scoring types
+lib/insights/      GitHub reader and the Claude call behind the reading aid
 lib/supabase/      browser, server and service-role clients
 supabase/migrations/  schema as ordered SQL
 proxy.ts           session refresh and route protection
@@ -188,3 +224,5 @@ spreadsheets execute those as formulas.
 - Deadline enforcement in the database. It is currently presentational.
 - Tests. There are none, which is the largest gap in this submission.
 - Real email delivery for decisions, on a proper SMTP provider.
+- Rate limiting on the reading aid. Nothing currently stops an organizer
+  triggering it repeatedly, and each call costs money.
