@@ -4,7 +4,7 @@ import { buildApplicationQuery, parseFilters } from "@/lib/applications/query";
 import { toSummaries } from "@/lib/applications/summary";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
 import { ROLE_COPY } from "@/lib/applications/roles";
-import { statusLabel } from "@/components/ui/badge";
+import { statusLabel } from "@/lib/applications/statuses";
 import { cell } from "@/lib/applications/csv";
 
 export async function GET(request: Request) {

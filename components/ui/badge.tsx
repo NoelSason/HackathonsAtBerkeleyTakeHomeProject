@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { Database } from "@/lib/database.types";
+import { STATUS_STYLES, statusLabel } from "@/lib/applications/statuses";
 
 type ApplicationStatus = Database["public"]["Enums"]["application_status"];
 
@@ -37,23 +38,6 @@ export function Badge({
   );
 }
 
-/*
- * Every status gets a tone AND a distinct glyph.
- *
- * Colour alone would not separate accepted from rejected for a reviewer with
- * a colour vision deficiency, and these badges appear a few thousand times in
- * a scan down the applications table. The glyph also survives a greyscale
- * print or a screenshot pasted into Slack.
- */
-const STATUS_STYLES: Record<ApplicationStatus, { label: string; tone: Tone; glyph: string }> = {
-  draft: { label: "Draft", tone: "neutral", glyph: "○" },
-  submitted: { label: "Submitted", tone: "info", glyph: "●" },
-  under_review: { label: "Under review", tone: "gold", glyph: "◐" },
-  accepted: { label: "Accepted", tone: "positive", glyph: "✓" },
-  waitlisted: { label: "Waitlisted", tone: "warning", glyph: "⋯" },
-  rejected: { label: "Rejected", tone: "danger", glyph: "✕" },
-};
-
 export function StatusBadge({ status }: { status: ApplicationStatus }) {
   const { label, tone, glyph } = STATUS_STYLES[status];
   return (
@@ -63,6 +47,5 @@ export function StatusBadge({ status }: { status: ApplicationStatus }) {
   );
 }
 
-export function statusLabel(status: ApplicationStatus) {
-  return STATUS_STYLES[status].label;
-}
+// Re-exported so callers that already import from this module keep working.
+export { statusLabel };

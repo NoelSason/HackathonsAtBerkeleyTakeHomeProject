@@ -3,7 +3,7 @@ import { initials } from "@/lib/auth";
 import { generaliseSchool } from "@/lib/applications/school-groups";
 import { cell } from "@/lib/applications/csv";
 import { daysUntilDeadline, inEventZone, timelineAt } from "@/lib/event";
-import { statusLabel } from "@/components/ui/badge";
+import { statusLabel } from "@/lib/applications/statuses";
 
 describe("initials", () => {
   it("takes the first letter of the first two names", () => {
