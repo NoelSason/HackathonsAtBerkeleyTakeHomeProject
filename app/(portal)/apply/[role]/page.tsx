@@ -9,6 +9,7 @@ import { ApplicationForm } from "@/components/applications/application-form";
 import { StatusBadge } from "@/components/ui/badge";
 import { buttonStyles } from "@/components/ui/button";
 import type { FieldValue } from "@/components/applications/field-control";
+import { daysUntilDeadline } from "@/lib/event";
 
 export const metadata: Metadata = { title: "Application" };
 
@@ -44,7 +45,12 @@ export default async function ApplyRolePage({ params }: PageProps<"/apply/[role]
   const responses = (application.responses ?? {}) as Record<string, FieldValue>;
 
   return (
-    <ApplicationForm applicationId={application.id} role={role} initialResponses={responses} />
+    <ApplicationForm
+      applicationId={application.id}
+      role={role}
+      initialResponses={responses}
+      daysLeft={daysUntilDeadline()}
+    />
   );
 }
 

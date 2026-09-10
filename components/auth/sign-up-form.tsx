@@ -15,6 +15,21 @@ export function SignUpForm() {
   // invites people to go looking for one.
   const [showOrganizerCode, setShowOrganizerCode] = useState(false);
 
+  // Controlled rather than uncontrolled, because React resets a form once its
+  // action resolves. Left uncontrolled, mistyping the organizer code emptied
+  // the name, email, school and password too, and the person had to type the
+  // whole thing again to fix one field.
+  const [fields, setFields] = useState({
+    full_name: "",
+    email: "",
+    school: "",
+    password: "",
+    organizer_code: "",
+  });
+
+  const update = (name: keyof typeof fields) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    setFields((current) => ({ ...current, [name]: event.target.value }));
+
   return (
     <div>
       <h1 className="text-3xl font-extrabold tracking-tight">Create an account</h1>
@@ -25,21 +40,42 @@ export function SignUpForm() {
           <label htmlFor="full_name" className="mb-1.5 block text-[13px] font-semibold">
             Full name
           </label>
-          <Input id="full_name" name="full_name" autoComplete="name" required />
+          <Input
+            id="full_name"
+            name="full_name"
+            autoComplete="name"
+            required
+            value={fields.full_name}
+            onChange={update("full_name")}
+          />
         </div>
 
         <div>
           <label htmlFor="email" className="mb-1.5 block text-[13px] font-semibold">
             Email
           </label>
-          <Input id="email" name="email" type="email" autoComplete="email" required />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={fields.email}
+            onChange={update("email")}
+          />
         </div>
 
         <div>
           <label htmlFor="school" className="mb-1.5 block text-[13px] font-semibold">
             School <span className="font-normal text-faint">optional</span>
           </label>
-          <Input id="school" name="school" autoComplete="organization" />
+          <Input
+            id="school"
+            name="school"
+            autoComplete="organization"
+            value={fields.school}
+            onChange={update("school")}
+          />
         </div>
 
         <div>
@@ -54,6 +90,8 @@ export function SignUpForm() {
             minLength={8}
             required
             aria-describedby="password-help"
+            value={fields.password}
+            onChange={update("password")}
           />
           <p id="password-help" className="mt-1.5 text-[13px] text-muted">
             At least 8 characters.
@@ -65,7 +103,13 @@ export function SignUpForm() {
             <label htmlFor="organizer_code" className="mb-1.5 block text-[13px] font-semibold">
               Organizer code
             </label>
-            <Input id="organizer_code" name="organizer_code" autoComplete="off" />
+            <Input
+              id="organizer_code"
+              name="organizer_code"
+              autoComplete="off"
+              value={fields.organizer_code}
+              onChange={update("organizer_code")}
+            />
           </div>
         ) : (
           <button

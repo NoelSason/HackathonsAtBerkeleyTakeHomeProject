@@ -88,8 +88,11 @@ export function SignInForm({ next }: { next: string }) {
                   {account.description}
                 </span>
               </span>
-              <span className="ml-3 shrink-0 font-mono text-[12px] text-faint">
-                {account.email.split("@")[0]}@demo
+              {/* The whole address, not a shortened one. These are printed so
+                  somebody can type them in, and "hacker@demo" is not an account
+                  that exists. */}
+              <span className="ml-3 shrink-0 font-mono text-[11px] text-faint">
+                {account.email}
               </span>
             </button>
           </li>

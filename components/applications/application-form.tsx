@@ -8,7 +8,7 @@ import {
   type Section,
 } from "@/lib/applications/forms";
 import { ROLE_COPY, type ApplicationRole } from "@/lib/applications/roles";
-import { EVENT, daysUntilDeadline } from "@/lib/event";
+import { EVENT } from "@/lib/event";
 import { FieldControl, type FieldValue } from "./field-control";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -24,10 +24,15 @@ export function ApplicationForm({
   applicationId,
   role,
   initialResponses,
+  daysLeft,
 }: {
   applicationId: string;
   role: ApplicationRole;
   initialResponses: Responses;
+  /** Counted on the server. Reading the clock while rendering a client
+      component makes the markup depend on when it ran, which is how the
+      server and the browser end up disagreeing after a hydration. */
+  daysLeft: number;
 }) {
   const form = APPLICATION_FORMS[role];
   const sections = form.sections;
@@ -144,7 +149,7 @@ export function ApplicationForm({
           <div className="mt-8 border-t border-line px-8 pt-6">
             <p className="font-mono text-[11px] tracking-[0.08em] text-faint">DEADLINE</p>
             <p className="mt-1.5 text-sm font-semibold">{EVENT.applicationsCloseLabel}</p>
-            <p className="mt-0.5 text-[13px] text-muted">{daysUntilDeadline()} days left</p>
+            <p className="mt-0.5 text-[13px] text-muted">{daysLeft} days left</p>
           </div>
         </nav>
 
@@ -328,7 +333,7 @@ function ReviewStep({
     <>
       <h2 className="text-2xl font-extrabold tracking-tight">Review &amp; submit</h2>
       <p className="mt-1.5 text-muted">
-        You can keep editing after you submit, right up until the deadline.
+        Check this over before you send it. Once submitted it becomes read-only.
       </p>
 
       <div className="mt-9 space-y-8">

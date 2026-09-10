@@ -24,9 +24,20 @@ const SCHOOL_GROUPS: Record<string, string> = {
   "Georgia Tech": "Large public university · US",
   "Howard University": "Private university · US",
   "University of Waterloo": "Large public university · Canada",
+  "McGill University": "Large public university · Canada",
+  "University of Washington": "Large public university · US",
+  "UT Austin": "Large public university · US",
+  "UC Santa Cruz": "Large public university · CA",
+  "San Francisco State": "Public university · CA",
+  "Northeastern University": "Private university · US",
+  "Morehouse College": "Private college · US",
 };
 
 export function generaliseSchool(school: string | null): string {
   if (!school) return "Not given";
-  return SCHOOL_GROUPS[school] ?? "School withheld";
+  // Object.hasOwn rather than a plain lookup: SCHOOL_GROUPS is an object
+  // literal, so "__proto__" would resolve to Object.prototype and
+  // "constructor" to a function. Both are truthy, so `??` would not catch
+  // them and a non-string would reach the blind queue.
+  return Object.hasOwn(SCHOOL_GROUPS, school) ? SCHOOL_GROUPS[school] : "School withheld";
 }

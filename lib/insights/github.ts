@@ -32,9 +32,18 @@ export type RepoStats = {
 
 /** Only ever returns something for a github.com repository URL. */
 export function parseRepoUrl(raw: string): { owner: string; repo: string } | null {
+  const trimmed = raw.trim();
+
+  // The form's own placeholder reads "github.com/yourname/project", so the
+  // scheme-less form is the one applicants actually type, and new URL() throws
+  // on it. Assuming https rather than rejecting is safe because the hostname
+  // check below is what does the work: "169.254.169.254/latest/meta-data/"
+  // becomes an https URL and then fails that check like any other host.
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
   let url: URL;
   try {
-    url = new URL(raw.trim());
+    url = new URL(candidate);
   } catch {
     return null;
   }

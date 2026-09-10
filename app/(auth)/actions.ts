@@ -57,6 +57,28 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
   redirect(safeNext(formData.get("next")));
 }
 
+/*
+ * Turns a Supabase auth failure into copy written for the person reading it.
+ *
+ * The provider's own strings leak out of the product otherwise: "User already
+ * registered" is the library's wording, not ours, and it is the only sentence
+ * on screen that reads like a log line. Anything unrecognised gets a generic
+ * message rather than passing the raw text through, because an auth error we
+ * have not thought about is exactly the kind that mentions internals.
+ */
+function signUpMessage(error: { code?: string; message: string }): string {
+  if (error.code === "user_already_exists" || /already registered/i.test(error.message)) {
+    return "There is already an account with that email. Try signing in instead.";
+  }
+  if (error.code === "weak_password") {
+    return "Choose a longer password — at least 8 characters.";
+  }
+  if (error.code === "over_email_send_rate_limit" || error.code === "over_request_rate_limit") {
+    return "Too many attempts just now. Wait a minute and try again.";
+  }
+  return "Could not create that account. Check the details and try again.";
+}
+
 const signUpSchema = z.object({
   full_name: z.string().trim().min(1, "Tell us your name."),
   email: z.email("Enter a valid email address."),
@@ -99,7 +121,7 @@ export async function signUp(_previous: AuthState, formData: FormData): Promise<
   });
 
   if (error) {
-    return { error: error.message, notice: null };
+    return { error: signUpMessage(error), notice: null };
   }
 
   if (data.user && wantsOrganizer) {
