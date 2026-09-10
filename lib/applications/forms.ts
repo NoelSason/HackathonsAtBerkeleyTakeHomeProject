@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApplicationRole } from "./roles";
+import type { ApplicationRole } from "./roles.ts";
 
 /*
  * Every question in the portal is defined here, and one renderer draws all of

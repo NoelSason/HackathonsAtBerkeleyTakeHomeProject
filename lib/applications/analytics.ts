@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
-import { APPLICATION_FORMS } from "./forms";
-import { APPLICATION_ROLES, type ApplicationRole } from "./roles";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
+import { APPLICATION_FORMS } from "./forms.ts";
+import { APPLICATION_ROLES, type ApplicationRole } from "./roles.ts";
 
 /*
  * The analytics function returns jsonb, which arrives typed as `Json`.
@@ -48,9 +49,17 @@ function reviewTargets(): Record<ApplicationRole, number> {
   ) as Record<ApplicationRole, number>;
 }
 
-export async function fetchAnalytics(): Promise<Analytics | null> {
-  const supabase = await createClient();
-
+/**
+ * Takes the client rather than building one.
+ *
+ * The server-component client reads cookies through next/headers, which ties
+ * anything calling it to a request inside Next. Passing the client in lets
+ * the same query run from the organizer CLI, where the caller has signed in
+ * with a password instead of carrying a session cookie.
+ */
+export async function fetchAnalytics(
+  supabase: SupabaseClient<Database>,
+): Promise<Analytics | null> {
   const { data, error } = await supabase.rpc("organizer_analytics", {
     p_targets: reviewTargets(),
   });

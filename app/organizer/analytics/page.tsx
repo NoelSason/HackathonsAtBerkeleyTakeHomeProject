@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireOrganizer } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { fetchAnalytics, type Analytics } from "@/lib/applications/analytics";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
 import { ROLE_COPY, isApplicationRole } from "@/lib/applications/roles";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Analytics" };
 
 export default async function AnalyticsPage() {
   await requireOrganizer();
-  const data = await fetchAnalytics();
+  const data = await fetchAnalytics(await createClient());
 
   if (!data) {
     return <p className="px-8 py-16 text-center text-sm text-muted">Could not load analytics.</p>;
