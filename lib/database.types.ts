@@ -22,6 +22,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_insights: {
+        Row: {
+          application_id: string
+          generated_at: string
+          model: string
+          repo_findings: Json | null
+          repo_stats: Json | null
+          repo_url: string | null
+          specificity: number
+          specificity_reason: string
+          summary: string
+        }
+        Insert: {
+          application_id: string
+          generated_at?: string
+          model: string
+          repo_findings?: Json | null
+          repo_stats?: Json | null
+          repo_url?: string | null
+          specificity: number
+          specificity_reason: string
+          summary: string
+        }
+        Update: {
+          application_id?: string
+          generated_at?: string
+          model?: string
+          repo_findings?: Json | null
+          repo_stats?: Json | null
+          repo_url?: string | null
+          specificity?: number
+          specificity_reason?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_insights_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           created_at: string
@@ -202,6 +246,19 @@ export type Database = {
     Functions: {
       is_director: { Args: never; Returns: boolean }
       organizer_analytics: { Args: { p_targets: Json }; Returns: Json }
+      save_application_insight: {
+        Args: {
+          p_application_id: string
+          p_summary: string
+          p_specificity: number
+          p_specificity_reason: string
+          p_repo_url: string | null
+          p_repo_stats: Json | null
+          p_repo_findings: Json | null
+          p_model: string
+        }
+        Returns: undefined
+      }
       is_organizer: { Args: never; Returns: boolean }
       set_application_status: {
         Args: {
