@@ -19,9 +19,21 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const { submitted } = await searchParams;
 
   const supabase = await createClient();
+  // Scoped to this person explicitly.
+  //
+  // It is tempting to leave this off, because the select policy on
+  // applications already stops an applicant reading anybody else's row. But
+  // policies OR together, and there are two: "applicants read their own" and
+  // "organizers read every application". An organizer matches the second, so
+  // an unfiltered query here does not mean "mine" for them, it means "all
+  // sixty-one" — and this is a page titled My applications.
+  //
+  // Row-level security decides what a query is allowed to return. It is not
+  // a substitute for saying what the query is actually asking for.
   const { data: applications } = await supabase
     .from("applications")
     .select("id, role, status, responses, display_id, created_at, submitted_at, updated_at")
+    .eq("user_id", profile.id)
     .order("created_at", { ascending: true });
 
   const rows = applications ?? [];

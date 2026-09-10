@@ -27,9 +27,13 @@ export default async function ApplyRolePage({ params }: PageProps<"/apply/[role]
     .from("applications")
     .upsert({ user_id: profile.id, role, status: "draft" }, { onConflict: "user_id,role", ignoreDuplicates: true });
 
+  // user_id as well as role. Without it an organizer, whose select policy
+  // covers every application, matches sixty-one rows here instead of one, and
+  // .single() turns that into a 404 on a page they were entitled to open.
   const { data: application } = await supabase
     .from("applications")
     .select("id, status, responses, display_id")
+    .eq("user_id", profile.id)
     .eq("role", role)
     .single();
 

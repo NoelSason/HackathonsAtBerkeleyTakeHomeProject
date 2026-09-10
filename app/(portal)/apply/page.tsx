@@ -10,13 +10,24 @@ export const metadata: Metadata = { title: "Apply" };
 type Status = Database["public"]["Enums"]["application_status"];
 
 export default async function ApplyPage() {
-  await requireProfile();
+  const profile = await requireProfile();
   const supabase = await createClient();
 
-  // No user_id filter needed. The select policy already restricts this to the
-  // caller's own rows, and adding one here would imply the query is what
-  // provides the isolation.
-  const { data } = await supabase.from("applications").select("role, status");
+  // Scoped to this person explicitly.
+  //
+  // It is tempting to leave this off, because the select policy on
+  // applications already stops an applicant reading anybody else's row. But
+  // policies OR together, and there are two: "applicants read their own" and
+  // "organizers read every application". An organizer matches the second, so
+  // an unfiltered query here does not mean "mine" for them, it means "all
+  // sixty-one" — and this is a page titled My applications.
+  //
+  // Row-level security decides what a query is allowed to return. It is not
+  // a substitute for saying what the query is actually asking for.
+  const { data } = await supabase
+    .from("applications")
+    .select("role, status")
+    .eq("user_id", profile.id);
 
   const existing: Partial<Record<ApplicationRole, Status>> = {};
   for (const row of data ?? []) {

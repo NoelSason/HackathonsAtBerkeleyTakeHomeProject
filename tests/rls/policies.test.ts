@@ -155,7 +155,14 @@ describe.skipIf(!hasLiveProject)("row-level security", () => {
   });
 
   describe("an organizer reads the whole pile", () => {
-    it("sees every application", async () => {
+    /*
+     * This is also the trap. Policies OR together, so an unfiltered read of
+     * applications means "mine" for an applicant and "all of them" for an
+     * organizer. Any page that means "mine" has to say so in the query — the
+     * applicant dashboard did not, and showed a director the whole pile under
+     * the heading My applications.
+     */
+    it("sees every application, not just their own", async () => {
       const { data, error } = await reviewer.from("applications").select("id");
 
       expect(error).toBeNull();
