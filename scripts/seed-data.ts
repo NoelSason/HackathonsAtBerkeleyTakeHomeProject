@@ -155,10 +155,13 @@ export const APPLICATIONS: SeedApplication[] = [
       pronouns: "she/her",
       major: "Data Science",
       hackathons_attended: "1–2",
-      portfolio: "https://github.com/praman/transit-delay-map",
+      // A real public repository, so the reading aid has something to
+      // actually compare the essay against during a demo. Everything else
+      // about this applicant is invented.
+      portfolio: "https://github.com/NoelSason/scv-sarigama-checkin",
       tracks: ["Civic tech", "AI / ML"],
       proud_project:
-        "Last spring I built a live map of BART delays using the public GTFS feed. The interesting part wasn't the map, it was reverse-engineering why the feed's delay estimates were consistently wrong on the Richmond line, and writing a correction model that got within 40 seconds. About 300 people used it daily by finals week.",
+        "I built the check-in system our cultural association used for its Onam event last year. Before that, three volunteers worked a paper list at the door and the queue backed up past the car park. I wrote a web app where a volunteer searches a name, taps once, and the count updates for everyone on shift at the same time. The hard part was not the code, it was that the venue wifi kept dropping, so I had to make the thing survive going offline mid-shift and reconcile afterwards without double-counting anyone.",
       why_cal_hacks:
         "I want to work on something civic with people who care about it. Also I have never shipped anything with a real backend and I would like to stop avoiding that.",
     }),

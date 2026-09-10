@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireDirector, requireOrganizer } from "@/lib/auth";
-import type { Database } from "@/lib/database.types";
+import { generateInsight, INSIGHT_MODEL } from "@/lib/insights/generate";
+import type { Database, Json } from "@/lib/database.types";
 
 type Status = Database["public"]["Enums"]["application_status"];
 
@@ -93,5 +94,71 @@ export async function decideApplications(input: {
   }
 
   revalidatePath("/organizer/applications");
+  return { error: null };
+}
+
+/**
+ * Produces the reading aid for one application and stores it.
+ *
+ * Gated on the caller having already scored this application, unless they are
+ * a director. That is the same principle as revealing an applicant's identity
+ * in the queue: a reviewer forms their own judgement first, and only then
+ * sees anything that might anchor it. Directors are deciding rather than
+ * blind-reading, so the gate does not apply to them.
+ *
+ * The result is cached in the database rather than regenerated per view, so
+ * two reviewers looking at the same application read identical text. A model
+ * called twice would produce two slightly different readings, which would put
+ * variance back into the one place this portal works to remove it.
+ */
+export async function requestInsight(applicationId: string): Promise<ActionResult> {
+  const profile = await requireOrganizer();
+  const supabase = await createClient();
+
+  if (profile.staff_role !== "director") {
+    const { data: ownReview } = await supabase
+      .from("reviews")
+      .select("score")
+      .eq("application_id", applicationId)
+      .eq("reviewer_id", profile.id)
+      .maybeSingle();
+
+    if (!ownReview) {
+      return { error: "Submit your own score first, then this becomes available." };
+    }
+  }
+
+  const { data: application } = await supabase
+    .from("applications")
+    .select("role, responses, status")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (!application) return { error: "That application no longer exists." };
+  if (application.status === "draft") {
+    return { error: "This application has not been submitted yet." };
+  }
+
+  const result = await generateInsight(
+    application.role,
+    (application.responses ?? {}) as Record<string, unknown>,
+  );
+
+  if (!result.ok) return { error: result.reason };
+
+  const { error } = await supabase.rpc("save_application_insight", {
+    p_application_id: applicationId,
+    p_summary: result.insight.summary,
+    p_specificity: result.insight.specificity,
+    p_specificity_reason: result.insight.specificity_reason,
+    p_repo_url: result.repoUrl,
+    p_repo_stats: result.repoStats as unknown as Json,
+    p_repo_findings: result.insight.repo as unknown as Json,
+    p_model: INSIGHT_MODEL,
+  });
+
+  if (error) return { error: "Generated it, but could not save it." };
+
+  revalidatePath(`/organizer/applications/${applicationId}`);
   return { error: null };
 }
