@@ -44,6 +44,20 @@
   --color-danger: #a32b24;
   --color-danger-soft: #fbeae8;
 
+  /* Chrome and charts.
+     The organizer side runs on a navy header while the applicant side stays
+     on the warm off-white ground, so the two halves of the portal are never
+     mistaken for each other. `steel` is the readable muted tone on that navy
+     and doubles as the lightest bar in the charts. */
+  --color-steel: #b9c6d2;
+  --color-steel-deep: #5c7a96;
+
+  /* Corner radii. The design settles on 4px for anything you click or type
+     into and 3px for status pills; naming them stops the two drifting apart
+     across files. */
+  --radius-control: 4px;
+  --radius-pill: 3px;
+
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 }
