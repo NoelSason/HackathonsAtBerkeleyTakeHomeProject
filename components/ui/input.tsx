@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
  * exactly when they sit next to each other in a form.
  */
 export const CONTROL_BASE =
-  "w-full rounded-md border border-line-strong bg-surface px-3 text-sm text-ink " +
+  "w-full rounded-control border border-line-strong bg-surface px-3 text-sm text-ink " +
   "placeholder:text-faint transition-colors hover:border-faint " +
   "focus:border-berkeley disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted";
 

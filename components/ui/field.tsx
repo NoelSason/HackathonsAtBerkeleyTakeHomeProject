@@ -14,9 +14,13 @@ type ControlProps = {
  * because the accessible wiring has to reach the input itself: the label
  * needs the input's `id`, and a screen reader only announces the help and
  * error text if the input points at them through `aria-describedby`.
- * Passing those four attributes back to the caller keeps that wiring
- * impossible to forget, which matters here because every question on
- * every application form renders through this one component.
+ * Handing those attributes back to the caller makes that wiring impossible
+ * to forget, which matters because every question on every application form
+ * renders through this one component.
+ *
+ * Optional fields are marked, not required ones. Most questions here are
+ * required, so asterisking them would put a marker on nearly every line and
+ * leave the reader scanning for the absence of one.
  */
 export function Field({
   id,
@@ -24,6 +28,8 @@ export function Field({
   help,
   error,
   required = false,
+  optionalHint = false,
+  counter,
   children,
 }: {
   id: string;
@@ -31,6 +37,9 @@ export function Field({
   help?: string;
   error?: string;
   required?: boolean;
+  optionalHint?: boolean;
+  /** Live character count, e.g. "412 / 1000". */
+  counter?: string;
   children: (props: ControlProps) => ReactNode;
 }) {
   const helpId = help ? `${id}-help` : undefined;
@@ -39,18 +48,18 @@ export function Field({
   const describedBy = [helpId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-ink">
-        {label}
-        {required && (
-          <span className="ml-1 text-danger" aria-hidden>
-            *
-          </span>
-        )}
-      </label>
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-4">
+        <label id={`${id}-label`} htmlFor={id} className="text-[13px] font-semibold text-ink">
+          {label}
+          {optionalHint && <span className="ml-1.5 font-normal text-faint">optional</span>}
+        </label>
+
+        {counter && <span className="shrink-0 font-mono text-[12px] text-faint">{counter}</span>}
+      </div>
 
       {help && (
-        <p id={helpId} className="text-[13px] leading-snug text-muted">
+        <p id={helpId} className="mb-1.5 text-[13px] leading-snug text-muted">
           {help}
         </p>
       )}
@@ -65,7 +74,7 @@ export function Field({
       })}
 
       {error && (
-        <p id={errorId} role="alert" className="text-[13px] font-medium text-danger">
+        <p id={errorId} role="alert" className="mt-1.5 text-[13px] font-medium text-danger">
           {error}
         </p>
       )}

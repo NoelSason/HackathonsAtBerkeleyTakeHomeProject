@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
  * lighter fill instead.
  */
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-lg border border-line bg-surface", className)} {...props} />;
+  return <div className={cn("rounded-control border border-line bg-surface", className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
