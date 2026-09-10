@@ -46,14 +46,31 @@ export function InsightPanel({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Only ever set by a generation that actually happened, so the number
+  // appears next to the click that spent one. The cap itself is not repeated
+  // here: it lives in claim_insight_budget, and a copy in TypeScript would be
+  // a second source of truth that could drift from the one being enforced.
+  const [remaining, setRemaining] = useState<number | null>(null);
+
   function generate() {
     setError(null);
     startTransition(async () => {
       const result = await requestInsight(applicationId);
-      if (result.error) setError(result.error);
-      else router.refresh();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if (typeof result.remaining === "number") setRemaining(result.remaining);
+      router.refresh();
     });
   }
+
+  const allowance =
+    remaining === null ? null : (
+      <p className="font-mono text-[11px] text-faint">
+        {remaining} {remaining === 1 ? "reading" : "readings"} left today
+      </p>
+    );
 
   return (
     <section className="mt-9 rounded-control border border-line bg-sunken px-6 py-5">
@@ -170,14 +187,17 @@ export function InsightPanel({
           )}
 
           {canGenerate && (
-            <button
-              type="button"
-              onClick={generate}
-              disabled={isPending}
-              className="text-[13px] font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
-            >
-              {isPending ? "Reading…" : "Read it again"}
-            </button>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <button
+                type="button"
+                onClick={generate}
+                disabled={isPending}
+                className="text-[13px] font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
+              >
+                {isPending ? "Reading…" : "Read it again"}
+              </button>
+              {allowance}
+            </div>
           )}
 
           {error && (
