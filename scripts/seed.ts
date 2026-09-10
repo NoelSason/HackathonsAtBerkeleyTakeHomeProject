@@ -30,6 +30,15 @@ const supabase = createClient<Database>(url, serviceRoleKey, {
 
 const DAY_MS = 86_400_000;
 
+/** Small deterministic hash, so the same seed run twice looks identical. */
+function hash(value: string): number {
+  let total = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    total = (total * 31 + value.charCodeAt(index)) % 1_000_003;
+  }
+  return total;
+}
+
 async function wipe() {
   const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
   if (error) throw error;
@@ -53,7 +62,7 @@ async function createPeople(): Promise<Map<string, string>> {
       password: DEMO_PASSWORD,
       // Skips the confirmation email entirely. Supabase's built-in SMTP is
       // rate limited to a handful of sends an hour, which would make seeding
-      // sixteen accounts impossible.
+      // forty-six accounts impossible.
       email_confirm: true,
       user_metadata: { full_name: person.fullName, school: person.school ?? "" },
     });
@@ -85,10 +94,16 @@ async function createApplications(ids: Map<string, string>) {
     const userId = ids.get(seed.applicant);
     if (!userId) throw new Error(`Unknown applicant ${seed.applicant}`);
 
+    // Offset by whole days alone and every application in the pile carries the
+    // same clock time, which is the one detail that gives seeded data away at
+    // a glance. The hour is derived from the applicant's email rather than
+    // randomised, so re-running the seed produces the same times.
+    const hourOffset = ((hash(seed.applicant + seed.role) % 1020) - 510) * 60_000;
+
     const submittedAt =
       seed.status === "draft" || seed.submittedDaysAgo === undefined
         ? null
-        : new Date(Date.now() - seed.submittedDaysAgo * DAY_MS);
+        : new Date(Date.now() - seed.submittedDaysAgo * DAY_MS + hourOffset);
 
     // Started a couple of days before it was sent, which is what makes the
     // applicant timeline show two distinct dates rather than one.
