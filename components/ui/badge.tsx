@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import type { Database } from "@/lib/database.types";
+
+type ApplicationStatus = Database["public"]["Enums"]["application_status"];
 
 export type Tone = "neutral" | "info" | "gold" | "positive" | "warning" | "danger";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-sunken text-muted",
+  neutral: "bg-sunken text-muted border border-line",
   info: "bg-berkeley-soft text-berkeley",
   gold: "bg-gold-soft text-gold-deep",
   positive: "bg-positive-soft text-positive",
@@ -12,41 +15,54 @@ const TONES: Record<Tone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
-const DOTS: Record<Tone, string> = {
-  neutral: "bg-faint",
-  info: "bg-berkeley",
-  gold: "bg-gold",
-  positive: "bg-positive",
-  warning: "bg-warning",
-  danger: "bg-danger",
-};
-
-/**
- * A status pill.
- *
- * The dot is not decoration. Roughly one in twelve men has some form of
- * colour vision deficiency, and the tinted fills alone would not separate
- * "accepted" from "rejected" for them, so every badge also carries its
- * label as text and the dot only reinforces it.
- */
 export function Badge({
   tone = "neutral",
-  dot = false,
+  glyph,
   children,
 }: {
   tone?: Tone;
-  dot?: boolean;
+  glyph?: string;
   children: ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-[11.5px] font-semibold whitespace-nowrap",
         TONES[tone],
       )}
     >
-      {dot && <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOTS[tone])} />}
+      {glyph && <span aria-hidden>{glyph}</span>}
       {children}
     </span>
   );
+}
+
+/*
+ * Every status gets a tone AND a distinct glyph.
+ *
+ * Colour alone would not separate accepted from rejected for a reviewer with
+ * a colour vision deficiency, and these badges appear a few thousand times in
+ * a scan down the applications table. The glyph also survives a greyscale
+ * print or a screenshot pasted into Slack.
+ */
+const STATUS_STYLES: Record<ApplicationStatus, { label: string; tone: Tone; glyph: string }> = {
+  draft: { label: "Draft", tone: "neutral", glyph: "○" },
+  submitted: { label: "Submitted", tone: "info", glyph: "●" },
+  under_review: { label: "Under review", tone: "gold", glyph: "◐" },
+  accepted: { label: "Accepted", tone: "positive", glyph: "✓" },
+  waitlisted: { label: "Waitlisted", tone: "warning", glyph: "⋯" },
+  rejected: { label: "Rejected", tone: "danger", glyph: "✕" },
+};
+
+export function StatusBadge({ status }: { status: ApplicationStatus }) {
+  const { label, tone, glyph } = STATUS_STYLES[status];
+  return (
+    <Badge tone={tone} glyph={glyph}>
+      {label}
+    </Badge>
+  );
+}
+
+export function statusLabel(status: ApplicationStatus) {
+  return STATUS_STYLES[status].label;
 }

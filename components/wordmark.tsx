@@ -1,22 +1,45 @@
 import { cn } from "@/lib/cn";
 
 /**
- * The portal's mark: a Berkeley Blue tile cut by a California Gold
- * diagonal. Drawn inline as SVG rather than shipped as an image file so
- * it stays sharp at any size and needs no extra network request.
+ * The Cal Hacks lockup: a California Gold tile, the name, and a small mono
+ * qualifier. Drawn as a styled element rather than an image so it stays sharp
+ * and costs no extra request.
+ *
+ * `tone` exists because the mark sits on two different grounds. The applicant
+ * side is warm off-white; the organizer side is navy, where the name has to
+ * flip to white while the gold tile stays exactly as it is.
  */
-export function Wordmark({ className, showText = true }: { className?: string; showText?: boolean }) {
+export function Wordmark({
+  qualifier,
+  tone = "light",
+  className,
+}: {
+  qualifier?: string;
+  tone?: "light" | "dark";
+  className?: string;
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="8" className="fill-berkeley" />
-        <path d="M9 22.5 20 9.5h4L13 22.5z" className="fill-gold" />
-        <circle cx="22.5" cy="21" r="2.5" className="fill-gold" />
-      </svg>
-      {showText && (
-        <span className="text-[15px] leading-none font-bold tracking-tight text-ink">
-          Cal Hacks
-          <span className="ml-1.5 font-medium text-muted">Portal</span>
+      <span
+        aria-hidden
+        className={cn("shrink-0 rounded-[3px] bg-gold", tone === "dark" ? "h-4 w-4" : "h-[18px] w-[18px]")}
+      />
+      <span
+        className={cn(
+          "text-[15px] leading-none font-extrabold tracking-tight",
+          tone === "dark" ? "text-white" : "text-ink",
+        )}
+      >
+        Cal Hacks
+      </span>
+      {qualifier && (
+        <span
+          className={cn(
+            "font-mono text-[11px] leading-none tracking-wide",
+            tone === "dark" ? "text-steel" : "text-muted",
+          )}
+        >
+          {qualifier}
         </span>
       )}
     </span>
