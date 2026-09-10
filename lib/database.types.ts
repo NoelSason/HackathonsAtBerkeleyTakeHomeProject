@@ -144,6 +144,34 @@ export type Database = {
       }
     }
     Views: {
+      application_summary: {
+        Row: {
+          created_at: string | null
+          display_id: number | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          mean_score: number | null
+          mean_z_score: number | null
+          responses: Json | null
+          review_count: number | null
+          role: Database["public"]["Enums"]["application_role"] | null
+          school: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_scores: {
         Row: {
           application_id: string | null
@@ -173,6 +201,7 @@ export type Database = {
     }
     Functions: {
       is_director: { Args: never; Returns: boolean }
+      organizer_analytics: { Args: { p_targets: Json }; Returns: Json }
       is_organizer: { Args: never; Returns: boolean }
       set_application_status: {
         Args: {
