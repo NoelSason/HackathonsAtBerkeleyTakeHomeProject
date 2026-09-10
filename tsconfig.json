@@ -6,6 +6,11 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // The seed script runs through Node's built-in type stripping, which
+    // requires import specifiers to carry the .ts extension. tsc rejects
+    // those unless told otherwise, and the flag is only legal alongside
+    // noEmit, which is already set above.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
