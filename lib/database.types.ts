@@ -25,6 +25,7 @@ export type Database = {
       applications: {
         Row: {
           created_at: string
+          display_id: number
           id: string
           responses: Json
           role: Database["public"]["Enums"]["application_role"]
@@ -35,6 +36,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_id?: never
           id?: string
           responses?: Json
           role: Database["public"]["Enums"]["application_role"]
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_id?: never
           id?: string
           responses?: Json
           role?: Database["public"]["Enums"]["application_role"]
@@ -69,7 +72,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          is_organizer: boolean
+          staff_role: Database["public"]["Enums"]["staff_role"] | null
           school: string | null
         }
         Insert: {
@@ -77,7 +80,7 @@ export type Database = {
           email: string
           full_name?: string
           id: string
-          is_organizer?: boolean
+          staff_role?: Database["public"]["Enums"]["staff_role"] | null
           school?: string | null
         }
         Update: {
@@ -85,7 +88,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          is_organizer?: boolean
+          staff_role?: Database["public"]["Enums"]["staff_role"] | null
           school?: string | null
         }
         Relationships: []
@@ -169,6 +172,7 @@ export type Database = {
       }
     }
     Functions: {
+      is_director: { Args: never; Returns: boolean }
       is_organizer: { Args: never; Returns: boolean }
       set_application_status: {
         Args: {
@@ -187,6 +191,7 @@ export type Database = {
         | "accepted"
         | "waitlisted"
         | "rejected"
+      staff_role: "reviewer" | "director"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -323,6 +328,7 @@ export const Constants = {
         "waitlisted",
         "rejected",
       ],
+      staff_role: ["reviewer", "director"],
     },
   },
 } as const
