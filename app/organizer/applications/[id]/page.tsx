@@ -191,7 +191,7 @@ export default async function ApplicationDetailPage({
 
           {profile.staff_role === "director" && (
             <div className="mt-6 border-t border-line pt-5">
-              <DecisionControls applicationId={application.id} />
+              <DecisionControls applicationId={application.id} status={application.status} />
             </div>
           )}
         </aside>
