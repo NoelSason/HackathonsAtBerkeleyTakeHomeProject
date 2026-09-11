@@ -2,10 +2,10 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuthState } from "@/lib/auth-form-state";
+import { readSignIn, readSignUp } from "@/lib/auth-schemas";
 
 /**
  * The path the proxy remembered, if it is safe to send somebody to.
@@ -48,16 +48,8 @@ function codeMatches(supplied: string, expected: string | undefined): boolean {
   return timingSafeEqual(digest(supplied), digest(expected));
 }
 
-const signInSchema = z.object({
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(1, "Enter your password."),
-});
-
 export async function signIn(_previous: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = signInSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
+  const parsed = readSignIn(formData);
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message, notice: null };
@@ -108,22 +100,8 @@ function signUpMessage(error: { code?: string; message: string }): string {
   return "Could not create that account. Check the details and try again.";
 }
 
-const signUpSchema = z.object({
-  full_name: z.string().trim().min(1, "Tell us your name."),
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(8, "Use at least 8 characters."),
-  school: z.string().trim().optional(),
-  organizer_code: z.string().trim().optional(),
-});
-
 export async function signUp(_previous: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = signUpSchema.safeParse({
-    full_name: formData.get("full_name"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    school: formData.get("school"),
-    organizer_code: formData.get("organizer_code"),
-  });
+  const parsed = readSignUp(formData);
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message, notice: null };
