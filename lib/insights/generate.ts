@@ -9,7 +9,23 @@ import { APPLICATION_FORMS } from "../applications/forms.ts";
 import type { ApplicationRole } from "../applications/roles.ts";
 import { classifyLink, readRepository, type LinkedUrl, type RepoFacts } from "./github.ts";
 
-export const INSIGHT_MODEL = "claude-opus-5";
+export const INSIGHT_MODEL = "claude-haiku-4-5";
+
+/*
+ * No `thinking` parameter, and that is a deliberate omission rather than an
+ * oversight.
+ *
+ * Adaptive thinking and `output_config.effort` are the current API on the
+ * Opus and Sonnet families and **both are rejected outright by Haiku 4.5**,
+ * which still takes an explicit `budget_tokens`. Omitting the parameter
+ * entirely is how that model runs without thinking, and measuring said it
+ * should: a three-thousand-token budget roughly doubled the wall clock for a
+ * rating that did not move.
+ *
+ * The jobs are narrow enough to survive it. The reader applies a five-band
+ * rubric written out in full in its own prompt; the auditor sorts facts into
+ * three named buckets. Neither is a chain of reasoning.
+ */
 
 /*
  * CalIntelligence is two model calls, not one, and they run at the same time.
@@ -534,15 +550,7 @@ async function runReader(
   const stream = client.messages.stream({
     model: INSIGHT_MODEL,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: {
-      format: zodOutputFormat(readingSchema),
-      // A reviewer is watching this happen. Medium is the deliberate choice:
-      // rating evidence density against a written rubric does not need the top
-      // of the range, and the seconds saved matter more here than the last
-      // increment of depth.
-      effort: "medium",
-    },
+    output_config: { format: zodOutputFormat(readingSchema) },
     system: READER_SYSTEM,
     messages: [
       {
@@ -588,8 +596,7 @@ async function runAuditor(
   const message = await client.messages.parse({
     model: INSIGHT_MODEL,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: { format: zodOutputFormat(comparisonSchema), effort: "medium" },
+    output_config: { format: zodOutputFormat(comparisonSchema) },
     system: AUDITOR_SYSTEM,
     messages: [
       {

@@ -261,14 +261,26 @@ claims rates low. It is deliberately orthogonal to how good the applicant is,
 because the standard failure of an automated screener is rewarding fluent
 writing, which tracks background rather than ability.
 
-Reading the seeded pile twice, the rating was identical on 24 of 29
+Reading the seeded pile twice, the rating was identical on 28 of 30
 applications and never moved more than one band. The most fluent essay in the
-seed rates 1 and the plainest account of a real thing rates 5, which is the
-rubric doing what it claims. It has still never been compared against human
-reviewers, and that remains the honest limit of the claim.
+seed rates 1 and the plainest account of a real thing sits at the top, which
+is the rubric doing what it claims. It has still never been compared against
+human reviewers, and that remains the honest limit of the claim.
+
+**The model is `claude-haiku-4-5`, and moving down to it was measured rather
+than assumed.** It started on `claude-opus-5`, which costs five times as much
+per token. A model swap is a change to what every reviewer reads, so the new
+output was held against the old: it agrees with the Opus ratings on 98% of
+applications within one band, its own run-to-run consistency is better (93%
+identical against 83%), and a README demanding a high rating still moves
+nothing. Two things got worse and both are worth knowing — the top of the
+scale compressed, so a 5 is rare, and the verbatim-quote check began firing at
+about one quotation in a hundred where the more expensive model had never
+tripped it. **That check had never fired before, which is exactly why it was
+worth having.**
 
 **Rate limiting lives in Postgres.** Each press is two model calls plus up to
-eight GitHub requests: roughly two cents and seventeen seconds.
+eight GitHub requests: roughly half a cent and fifteen seconds.
 `claim_insight_budget()` allows fifty readings a day per organizer and
 refuses to regenerate one less than five minutes old, and the cooldown is
 checked *before* the counter is touched, so the case that actually happens —

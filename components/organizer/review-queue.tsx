@@ -58,8 +58,18 @@ export function ReviewQueue({
 
   const application = item.application;
 
+  /**
+   * The pane the application scrolls in, so the next one starts at the top.
+   *
+   * Without this a reviewer who scrolled to the bottom of a long application
+   * would be handed the next one already scrolled past its own first
+   * question, which is a strange way to meet somebody.
+   */
+  const pane = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     startedAt.current = Date.now();
+    pane.current?.scrollTo({ top: 0 });
   }, [application?.id]);
 
   /**
@@ -180,7 +190,7 @@ export function ReviewQueue({
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
       {/* Above the card rather than inside it. Everything inside is about the
           application being read; this is about the reader's own history. */}
       <div className="flex justify-center px-4 pt-4">
@@ -189,8 +199,17 @@ export function ReviewQueue({
         </div>
       </div>
 
-      <div className="flex flex-1 justify-center overflow-hidden px-4 pt-5">
-        <article className="w-full max-w-205 rounded-t-control border border-b-0 border-line bg-surface px-6 py-9 sm:px-12">
+      {/* min-h-0 is load-bearing. A flex child defaults to min-height:auto,
+          so without it this pane refuses to shrink below the height of the
+          application inside it — the column grows past the viewport, the page
+          scrolls as a whole, and the scoring bar disappears off the bottom
+          exactly when a reviewer wants it. With it the application scrolls
+          inside its own pane and the bar never moves. */}
+      <div
+        ref={pane}
+        className="flex min-h-0 flex-1 justify-center overflow-y-auto px-4 pt-5"
+      >
+        <article className="h-fit w-full max-w-205 rounded-t-control border border-b-0 border-line bg-surface px-6 py-9 sm:px-12">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-5">
             <div className="flex flex-wrap items-center gap-3">
               <span
