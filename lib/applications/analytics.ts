@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { APPLICATION_FORMS } from "./forms.ts";
-import { APPLICATION_ROLES, type ApplicationRole } from "./roles.ts";
+import { APPLICATION_FORMS } from "./forms";
+import { APPLICATION_ROLES, type ApplicationRole } from "./roles";
 
 /*
  * The analytics function returns jsonb, which arrives typed as `Json`.

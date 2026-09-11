@@ -118,6 +118,7 @@ function mentor(fields: Partial<Record<string, string | string[]>>) {
     stack: "",
     shifts: ["Saturday afternoon"],
     presence: "On-site",
+    portfolio: "",
     mentoring_approach: "",
     ...fields,
   } as Record<string, string | string[]>;
@@ -132,6 +133,7 @@ function judge(fields: Partial<Record<string, string | string[]>>) {
     judging_experience: "Once or twice",
     tracks: ["AI / ML"],
     evaluation_strengths: "",
+    portfolio: "",
     sunday_availability: "All afternoon",
     conflicts: "",
     ...fields,
@@ -161,7 +163,7 @@ export const APPLICATIONS: SeedApplication[] = [
       major: "EECS",
       hackathons_attended: "3–5",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/amaraok",
+      portfolio: "https://github.com/adafruit/Adafruit_CircuitPython_ServoKit",
       tracks: ["AI / ML", "Health"],
       proud_project:
         "My grandmother's arthritis makes pill bottles hard to open, so I built her a dispenser out of a Raspberry Pi, a servo, and a lot of hot glue. The first version jammed constantly. Fixing it taught me more about tolerances and failure modes than any class: I redesigned the carousel three times, added a load cell to verify a pill actually dropped, and wrote a text-message fallback for when it doesn't. She has used it every day for eight months.",
@@ -185,6 +187,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2029",
       hackathons_attended: "First-time",
       shipping_comfort: "I can follow a tutorial and adapt it",
+      portfolio: "https://github.com/frappe/erpnext",
       tracks: ["Civic tech"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -207,7 +210,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "6 or more",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/dfernandez",
+      portfolio: "https://github.com/djrobstep/migra",
       tracks: ["Developer tools", "Fintech"],
       travel: "Travelling, no reimbursement needed",
       proud_project:
@@ -230,7 +233,7 @@ export const APPLICATIONS: SeedApplication[] = [
       pronouns: "she/her",
       major: "Data Science",
       hackathons_attended: "1–2",
-      // A real public repository, so the reading aid has something to
+      // A real public repository, so CalIntelligence has something to
       // actually compare the essay against during a demo. Everything else
       // about this applicant is invented.
       portfolio: "https://github.com/NoelSason/scv-sarigama-checkin",
@@ -255,6 +258,7 @@ export const APPLICATIONS: SeedApplication[] = [
       major: "Cognitive Science",
       graduation: "2027",
       hackathons_attended: "3–5",
+      portfolio: "https://github.com/open-spaced-repetition/fsrs4anki",
       tracks: ["Health", "AI / ML"],
       proud_project:
         "A study tool that turns lecture recordings into spaced-repetition cards. The hard part was segmentation: naive sentence splitting produced useless cards, so I trained a small classifier on my own annotations of what makes a testable claim.",
@@ -275,6 +279,7 @@ export const APPLICATIONS: SeedApplication[] = [
       major: "Mechatronics",
       graduation: "2026",
       hackathons_attended: "3–5",
+      portfolio: "https://github.com/meshtastic/firmware",
       tracks: ["Hardware", "Climate"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -293,6 +298,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2029",
       hackathons_attended: "First-time",
       shipping_comfort: "Still learning the basics",
+      portfolio: "https://github.com/tastejs/todomvc",
       tracks: ["AI / ML"],
       proud_project: "I built a to-do list app in React following a tutorial. I want to learn more.",
       why_cal_hacks: "It seems like a good opportunity and it would look good on my resume.",
@@ -312,6 +318,7 @@ export const APPLICATIONS: SeedApplication[] = [
       pronouns: "he/him",
       major: "Computer Engineering",
       graduation: "2028",
+      portfolio: "https://github.com/actualbudget/actual",
       tracks: ["Fintech"],
       proud_project:
         "A budgeting tool for people paid in cash. Most apps assume a bank feed; my family's does not have one, so the whole model is manual entry that takes under five seconds.",
@@ -328,6 +335,7 @@ export const APPLICATIONS: SeedApplication[] = [
       major: "Applied Math",
       graduation: "2027",
       hackathons_attended: "1–2",
+      portfolio: "https://github.com/pvlib/pvlib-python",
       tracks: ["Climate"],
       proud_project:
         "A simulation of rooftop solar payback under different tariff structures. I learned more about utility billing than about code.",
@@ -354,6 +362,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Go, Postgres, Kafka",
       shifts: ["Saturday morning", "Saturday afternoon", "Sunday morning"],
       presence: "On-site",
+      portfolio: "https://github.com/djrobstep/migra",
       mentoring_approach:
         "First I make them explain what they think is happening, out loud, because half the time they find it themselves. If that fails I ask what they have already ruled out. I try very hard not to touch the keyboard.",
     },
@@ -377,6 +386,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Python, PyTorch, JAX",
       shifts: ["Saturday night", "Sunday morning"],
       presence: "Either",
+      portfolio: "https://github.com/scikit-learn/scikit-learn",
       mentoring_approach:
         "Ask what they are actually trying to show in the demo, then cut everything that does not serve it. Most stuck teams are stuck because they are building something they do not need.",
     },
@@ -396,6 +406,7 @@ export const APPLICATIONS: SeedApplication[] = [
       tracks: ["Health", "AI / ML"],
       evaluation_strengths:
         "Whether the team understood the problem well enough to know what they left out. A narrow thing that works beats a broad thing that demos.",
+      portfolio: "https://github.com/astral-sh/ruff",
       sunday_availability: "Early afternoon only",
       conflicts: "I would recuse from anything involving Stanford Medicine data.",
     },
@@ -453,7 +464,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "3–5",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/sindresorhus/ky",
+      portfolio: "https://github.com/MobilityData/gtfs-realtime-bindings",
       tracks: ["Developer tools", "Civic tech"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -478,7 +489,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
-      portfolio: "github.com/ingridsolberg/gel-reader",
+      portfolio: "https://github.com/scikit-image/scikit-image",
       tracks: ["Health", "AI / ML"],
       proud_project:
         "Software that reads gel electrophoresis images and reports band positions, because our lab was doing it by eye and disagreeing with each other. It is a thresholding pipeline, not machine learning, and it agrees with the two most careful people in the lab about 95% of the time. The remaining 5% are the interesting ones and I log every single one.",
@@ -502,7 +513,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2026",
       hackathons_attended: "6 or more",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/tiangolo/typer",
+      portfolio: "https://github.com/tarpas/pytest-testmon",
       tracks: ["Developer tools", "AI / ML"],
       travel: "I live locally",
       proud_project:
@@ -526,6 +537,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2029",
       hackathons_attended: "First-time",
       shipping_comfort: "I can follow a tutorial and adapt it",
+      portfolio: "https://github.com/ActivityWatch/activitywatch",
       tracks: ["Health"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -550,7 +562,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "3–5",
       shipping_comfort: "I've built projects end to end",
-      portfolio: "https://github.com/omarfarouk-dev",
+      portfolio: "https://github.com/TheThingsNetwork/lorawan-stack",
       tracks: ["Hardware", "Climate"],
       travel: "Travelling, no reimbursement needed",
       proud_project:
@@ -569,7 +581,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
-      portfolio: "https://github.com/streamlit/streamlit",
+      portfolio: "https://github.com/City-Bureau/city-scrapers",
       tracks: ["Civic tech", "AI / ML"],
       proud_project:
         "I scraped four years of my city council's agendas and built a search over them, because finding out when your street is being discussed currently requires reading PDFs. Two neighbourhood groups use it. It has no users outside a three-mile radius and that is fine.",
@@ -592,6 +604,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "6 or more",
       shipping_comfort: "I ship production code regularly",
+      portfolio: "https://github.com/tensorflow/tensorflow",
       tracks: ["Fintech", "AI / ML"],
       proud_project:
         "I have led multiple award-winning teams to victory at premier hackathons across the country, leveraging cutting-edge AI to disrupt legacy industries and deliver transformative outcomes at scale.",
@@ -614,6 +627,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "1–2",
       shipping_comfort: "I can follow a tutorial and adapt it",
+      portfolio: "https://github.com/LibreTranslate/LibreTranslate",
       tracks: ["Hardware"],
       travel: "I live locally",
       proud_project:
@@ -638,7 +652,7 @@ export const APPLICATIONS: SeedApplication[] = [
       level: "Master's",
       hackathons_attended: "3–5",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/pola-rs/polars",
+      portfolio: "https://github.com/scikit-learn/scikit-learn",
       tracks: ["AI / ML", "Developer tools"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -662,6 +676,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2029",
       hackathons_attended: "First-time",
       shipping_comfort: "Still learning the basics",
+      portfolio: "https://github.com/observablehq/plot",
       tracks: ["Climate"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -680,7 +695,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
-      portfolio: "https://github.com/jonahweiss",
+      portfolio: "https://github.com/electro-smith/DaisyExamples",
       tracks: ["Hardware", "AI / ML"],
       proud_project:
         "A guitar pedal that listens to what you played eight bars ago and plays it back slightly wrong. It is one microcontroller and a lot of arguing with myself about latency. Two people in my department have bought one off me for parts cost.",
@@ -703,7 +718,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "3–5",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/duckdb/duckdb",
+      portfolio: "https://github.com/dateutil/dateutil",
       tracks: ["Health", "AI / ML"],
       travel: "I live locally",
       proud_project:
@@ -727,6 +742,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
+      portfolio: "https://github.com/twilio/twilio-python",
       tracks: ["Civic tech", "Fintech"],
       travel: "Travelling, requesting reimbursement",
       proud_project:
@@ -750,6 +766,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "First-time",
       shipping_comfort: "I can follow a tutorial and adapt it",
+      portfolio: "https://github.com/OpenSprinkler/OpenSprinkler-Firmware",
       tracks: ["Climate", "Hardware"],
       travel: "Travelling, requesting reimbursement",
       dietary: "Vegetarian",
@@ -769,6 +786,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2030 or later",
       hackathons_attended: "First-time",
       shipping_comfort: "Still learning the basics",
+      portfolio: "https://github.com/Rapptz/discord.py",
       tracks: ["AI / ML"],
       proud_project: "I made a Discord bot from a YouTube tutorial. It tells jokes.",
       why_cal_hacks: "Free food and swag, and my roommate is going.",
@@ -790,7 +808,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2027",
       hackathons_attended: "3–5",
       shipping_comfort: "I ship production code regularly",
-      portfolio: "https://github.com/huggingface/tokenizers",
+      portfolio: "https://github.com/m-bain/whisperX",
       tracks: ["AI / ML", "Health"],
       travel: "I live locally",
       accessibility: "I have a hearing impairment and would benefit from captions at the opening talks.",
@@ -815,6 +833,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2026",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
+      portfolio: "https://github.com/NREL/EnergyPlus",
       tracks: ["Climate"],
       proud_project:
         "A model of how long our building's heating takes to respond to the thermostat, fitted from a winter of logged temperatures. The conclusion was that the thermostat is in the wrong room. Facilities have not moved it.",
@@ -846,7 +865,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2029",
       hackathons_attended: "1–2",
       shipping_comfort: "I've built projects end to end",
-      portfolio: "https://github.com/weizhang-dev",
+      portfolio: "https://github.com/astral-sh/ruff",
       tracks: ["Developer tools"],
       travel: "I live locally",
       proud_project:
@@ -869,6 +888,7 @@ export const APPLICATIONS: SeedApplication[] = [
       graduation: "2028",
       hackathons_attended: "First-time",
       shipping_comfort: "I can follow a tutorial and adapt it",
+      portfolio: "https://github.com/openstreetmap/iD",
       tracks: ["Civic tech"],
       travel: "I live locally",
       proud_project:
@@ -891,6 +911,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Ruby, Rust, Postgres",
       shifts: ["Friday evening", "Saturday morning", "Saturday afternoon"],
       presence: "On-site",
+      portfolio: "https://github.com/meshtastic/firmware",
       mentoring_approach:
         "I ask to see the error message. Not a description of it, the message. About a third of the time we are done at that point, and the team learns to read the thing in front of them.",
     }),
@@ -1065,6 +1086,7 @@ export const APPLICATIONS: SeedApplication[] = [
       tracks: ["AI / ML", "Developer tools"],
       evaluation_strengths:
         "I am good at spotting the demo that only works on the presenter's laptop with one specific input. I ask to type something myself.",
+      portfolio: "https://github.com/dateutil/dateutil",
       sunday_availability: "All afternoon",
     }),
     reviews: {

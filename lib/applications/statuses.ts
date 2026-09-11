@@ -1,4 +1,4 @@
-import type { Database } from "../database.types.ts";
+import type { Database } from "@/lib/database.types";
 
 type ApplicationStatus = Database["public"]["Enums"]["application_status"];
 
@@ -6,9 +6,9 @@ type ApplicationStatus = Database["public"]["Enums"]["application_status"];
  * How each status is written and drawn.
  *
  * This is data rather than presentation, so it lives outside the badge
- * component that renders it. Three surfaces need the label without wanting a
- * React element: the CSV export, the command-line tools, and the MCP server,
- * none of which can import a .tsx file.
+ * component that renders it. The CSV export needs the label without wanting a
+ * React element, and a route handler importing a .tsx file to get a string
+ * would be pulling React in for nothing.
  *
  * Every status carries a distinct glyph as well as a tone. Colour alone would
  * not separate accepted from rejected for a reviewer with a colour vision

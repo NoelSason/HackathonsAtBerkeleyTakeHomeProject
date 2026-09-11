@@ -74,7 +74,7 @@ describe.skipIf(!hasLiveProject)("row-level security", () => {
       expect(data).toEqual([]);
     });
 
-    it("reads no reading aids", async () => {
+    it("reads no CalIntelligence readings", async () => {
       const { data, error } = await applicant.from("application_insights").select("summary");
 
       expect(error).toBeNull();

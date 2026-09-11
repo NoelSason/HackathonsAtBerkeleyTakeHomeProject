@@ -20,6 +20,12 @@ Password for all three is `calhacks2026`.
 Signing up is open. Entering the organizer code during sign-up creates a
 reviewer account; directors are not self-serve.
 
+`GITHUB_TOKEN` is optional and documented in `.env.example`. Without it
+GitHub allows sixty requests an hour per IP address, and one application
+costs six of them. CalIntelligence works either way — a repository it could
+not read because of that limit says so on the panel, in those words — but on
+a shared serverless address the limit is worth raising.
+
 ## Stack
 
 Next.js 16 (App Router) · TypeScript · Tailwind v4 · Supabase (Postgres,
@@ -34,8 +40,8 @@ profiles             id → auth.users, email, full_name, school, staff_role
 applications         user_id → profiles, role, status, responses (jsonb),
                      submitted_at, display_id        UNIQUE (user_id, role)
 reviews              (application_id, reviewer_id) PK, score 1–5, notes
-application_insights application_id PK, the cached reading aid
-insight_usage        (reviewer_id, day) PK, count — the reading-aid allowance
+application_insights application_id PK, the cached CalIntelligence reading
+insight_usage        (reviewer_id, day) PK, count — the reading allowance
 ```
 
 `application_role` is hacker / mentor / judge / volunteer.
@@ -122,19 +128,27 @@ Rosa's single 5 came from the most generous reviewer, whose own average is
 4.4. Amara's *lowest* score was a 4 from the harshest reviewer, whose average
 is 3.1. Calibrated, Amara moves ahead.
 
-Across the whole pile the effect is larger. A volunteer with a single 4 from
-the harshest reviewer ranks nineteenth on raw score and first once calibrated;
-`npm run portal -- outliers` lists the applications the two orderings most
-disagree about, which is the question this feature raises and no screen
-answers.
+Across the whole pile the effect is larger: a volunteer with a single 4 from
+the harshest reviewer ranks nineteenth on raw score and first once
+calibrated.
 
-### The reading aid
+Because the queue only ever serves what you have not read, there is also a
+**Reset my reviews** control at the top of it. The first handful of scores in
+a session are calibrated against nothing, and without this there is no way
+back to them. It clears only the reviews belonging to the person clicking —
+the function takes no argument and reads the reviewer from the session — and
+returns the applications no review survives to `submitted`, since the status
+was advanced by a trigger that has nothing to walk it back.
 
-The detail page can also read an application with Claude and, when the
-applicant linked a GitHub repository, compare what they wrote against what
-the repository actually contains. It reports three things separately: what
-the repository backs up, what it shows that the essay never mentioned, and
-where the two actively conflict.
+### CalIntelligence
+
+The detail page can read an application with Claude: it restates the written
+answers, pulls out the sentences a reviewer could go and verify, rates how
+much checkable evidence the writing carries, and — when the applicant linked
+a GitHub repository — holds what the repository actually contains against
+what the essay claimed. It reports three things separately: what the
+repository backs up, what it shows that the essay never mentioned, and where
+the two actively conflict.
 
 Three constraints shape it, all because this reads real people's
 applications:
@@ -144,21 +158,61 @@ applications:
 - **Specificity is defined as evidence density, not merit.** A plain account
   of one small real thing rates above a polished essay of unfalsifiable
   claims. The label on screen says so, so nobody reads it as a grade.
-- **The raw repository facts are shown alongside**, so a reviewer checks the
-  model's reading rather than trusting it.
+- **Nothing appears that cannot be traced.** Every quotation is checked
+  against the answer it claims to come from before it is stored, and the raw
+  repository facts sit on the same page, so a reviewer checks the model's
+  reading rather than trusting it.
 
 It is gated on the reviewer having already submitted their own score, unless
 they are a director. Same principle as revealing identity in the queue: form
 your own judgement first. It is deliberately absent from the blind queue
 entirely.
 
-Two implementation notes. Applicant answers are fenced and labelled as data
-before entering the prompt, since they are a text field a stranger filled in;
-the instructions also state the model never scores, so a successful injection
-has nothing useful to ask for. And the repository URL is parsed strictly:
-only a `github.com` repository path is accepted, which is what stops a
-portfolio field reading `http://169.254.169.254/latest/meta-data/` from
-having the server fetch cloud metadata.
+**Two calls, in parallel, with different information.** The reader sees only
+the written answers and produces the summary, the rating and the quotations.
+The auditor sees the answers next to the repository facts and produces the
+three comparison lists. Splitting them costs a second call and buys three
+things: each prompt holds one job, the wall-clock cost is the slower of the
+two rather than the sum, and **the call that chooses the rating is never
+shown a repository at all** — so a README cannot influence the number even in
+principle.
+
+**It streams.** The endpoint writes one JSON object per line as each part
+lands, so the repository facts appear in about four seconds and the summary
+writes itself in while the comparison is still running, instead of a spinner
+turning for seventeen seconds and everything arriving at once. It is the one
+route handler in the app rather than a server action, and that is the reason.
+
+**Untrusted input, on both sides.** Applicant answers are fenced and labelled
+as data before entering the prompt, since they are a text field a stranger
+filled in. So are the repository facts, which is the less obvious half: the
+server fetched them, but an applicant owns the repository they linked and
+therefore writes its description, its file names and its README. The URL is
+parsed strictly — only a `github.com` repository path is accepted, which is
+what stops a portfolio field reading
+`http://169.254.169.254/latest/meta-data/` from having the server fetch cloud
+metadata.
+
+**What it reads from a repository.** Six requests: the repository, its
+languages, its contributors, its commit count, its full file tree and its
+README. The file tree is what makes the test and CI figures true rather than
+guessed — continuous integration means a workflow file under
+`.github/workflows`, not the presence of a `.github` directory, and a test
+suite is found wherever it lives rather than only in a top-level `tests`
+folder. The contributor list answers the question nothing else did: how much
+of this repository is the linked account's work. Those are reported as
+figures, never as a conclusion, because "214 contributors and 3% of the
+commits" is a fact and "they probably did not build this" is the reviewer's
+call.
+
+**A link that is not a repository says so.** A GitHub profile with no
+repository, a Devpost page, a repository that does not exist, and one GitHub
+would not serve us are four different situations and the panel now names
+which one happened. The last of those matters most: a rate limit on our side
+used to be reported to the reviewer as "not a readable public GitHub
+repository", which is a false statement about an applicant caused by our own
+quota. It now says so in its own words, and it does not spend one of the
+reviewer's readings.
 
 Results are cached per application rather than regenerated per view, so two
 reviewers read identical text.
@@ -174,15 +228,22 @@ claims rates low. It is deliberately orthogonal to how good the applicant is,
 because the standard failure of an automated screener is rewarding fluent
 writing, which tracks background rather than ability.
 
-**Rate limiting lives in Postgres.** Each press is a model call plus up to
-four GitHub requests: roughly a cent and sixteen seconds. `claim_insight_budget()`
-allows fifty readings a day per organizer and refuses to regenerate one less
-than five minutes old, and the cooldown is checked *before* the counter is
-touched, so the case that actually happens — somebody pressing "Read it
-again" — costs neither money nor allowance. The action claims the budget
-before calling the model, so a refused request never reaches Anthropic.
+Reading the seeded pile twice, the rating was identical on 24 of 29
+applications and never moved more than one band. The most fluent essay in the
+seed rates 1 and the plainest account of a real thing rates 5, which is the
+rubric doing what it claims. It has still never been compared against human
+reviewers, and that remains the honest limit of the claim.
 
-It is in the database rather than in the server action for the same reason
+**Rate limiting lives in Postgres.** Each press is two model calls plus up to
+six GitHub requests: roughly two cents and seventeen seconds.
+`claim_insight_budget()` allows fifty readings a day per organizer and
+refuses to regenerate one less than five minutes old, and the cooldown is
+checked *before* the counter is touched, so the case that actually happens —
+somebody pressing "Read it again" — costs neither money nor allowance. The
+budget is claimed before the model is called, so a refused request never
+reaches Anthropic.
+
+It is in the database rather than in the route handler for the same reason
 everything else is: `save_application_insight` is callable straight off the
 REST API by any signed-in organizer, so a rule enforced only in TypeScript is
 a rule enforced only for people using the website. The counter table has its
@@ -206,11 +267,20 @@ Applying the schema and loading demo data:
 ```bash
 supabase db push --db-url "$SUPABASE_DB_URL"
 npm run seed
+npm run warm     # optional, pre-reads the seeded pile with CalIntelligence
 ```
 
-`npm run seed` wipes every user first. It is safe here because this project
-holds nothing but invented data, and it is not something to point at a
-database with real applicants in it.
+`npm run seed` removes only the accounts it owns — every seeded address is
+listed in the script — so a real sign-up on the deployed site survives a
+reseed. It is still a service-role script that writes directly past every
+policy, so it runs from a developer's machine and never from the app.
+
+`npm run warm` produces a CalIntelligence reading for every seeded
+application ahead of time. Readings are cached per application, so this
+simply puts the seeded pile in the state it would be in a week into a real
+season, when somebody has already read most of it. A new applicant is
+untouched by it: nothing has been read for them, so the first organizer to
+open their application generates it live.
 
 Checks:
 
@@ -226,9 +296,12 @@ npm test
 Two suites, in `tests/`.
 
 `tests/lib` covers the pure functions: the URL parser that is the SSRF
-boundary on the reading aid, the query-string parser behind the organizer
-filters, both application schemas, the view-row mapper, the CSV escaper and
-the date formatting. No network, no database, under a fifth of a second.
+boundary on CalIntelligence, the prompt fences that keep an applicant's own
+README from closing them, the check that discards a quotation the model did
+not copy word for word, the file-tree reader behind the test and CI figures,
+the query-string parser behind the organizer filters, both application
+schemas, the view-row mapper, the CSV escaper and the date formatting. No
+network, no database, under a fifth of a second.
 
 `tests/rls` signs in as the three demo accounts and asserts what the row-level
 security policies actually do — that an applicant sees their own rows and no
@@ -243,63 +316,6 @@ migration file but was never applied. The suite skips itself when `.env.local`
 is absent, so `npm test` is still green on a fresh clone, and it restores the
 one row it mutates.
 
-## Reading the pile from a terminal
-
-Two entry points over one read-only query layer in `lib/portal/`.
-
-```bash
-npm run portal -- stats                    # totals and review progress
-npm run portal -- queue                    # how much reading is left, by role
-npm run portal -- calibration              # each reviewer's own mean and spread
-npm run portal -- outliers                 # where raw and calibrated ranking disagree
-npm run portal -- show 2111                # one application, answers and reviews
-npm run portal -- list --role hacker --status under_review
-```
-
-`outliers` is the one worth running. It answers the question the calibration
-feature raises and no screen answers, because comparing two sorted columns by
-eye means holding both in your head:
-
-```
-2165  Nadia Petrova (Volunteer): raw #19, calibrated #1   — up 18
-2111  Rosa Delgado  (Hacker):    raw #1,  calibrated #14  — down 13
-```
-
-The same reads are available to an AI assistant over MCP:
-
-```json
-{
-  "mcpServers": {
-    "calhacks-portal": {
-      "command": "node",
-      "args": ["--env-file=.env.local", "scripts/portal-mcp.ts"],
-      "cwd": "/absolute/path/to/this/repository"
-    }
-  }
-}
-```
-
-Six tools: `list_applications`, `get_application`, `overview_stats`,
-`reviewer_calibration`, `queue_status`, `score_outliers`.
-
-**Both authenticate as a named organizer and run every query under that
-person's row-level security. Neither reads the service role key.** So an
-assistant connected here sees exactly what the human who configured it sees in
-the portal, and configuring it with an applicant account makes it refuse to
-start rather than answer "how many applications are there" with two. Set
-`PORTAL_ORGANIZER_EMAIL` and `PORTAL_ORGANIZER_PASSWORD` to choose whose view
-it is.
-
-The schema already refuses the shortcut, which is the better argument:
-`organizer_analytics` is `SECURITY INVOKER` and guards itself with
-`is_organizer()`, which reads `auth.uid()`. A service-role connection has none,
-so it would not merely be over-privileged — it would fail.
-
-**Nothing writes.** There is no tool to grade, decide, message anyone or
-trigger the reading aid, which is what makes the surface safe to attach to a
-model that might misunderstand an instruction. `grep -nE "\.(insert|update|delete|upsert)\(" lib/portal/*.ts scripts/portal-*.ts`
-returns nothing.
-
 ## Layout
 
 ```
@@ -308,10 +324,9 @@ app/(portal)/      applicant side: role picker, application form, dashboard
 app/organizer/     applications table, detail, review queue, analytics
 components/ui/     the seven primitives everything else is built from
 lib/applications/  form registry, query builder, scoring types
-lib/insights/      GitHub reader and the Claude call behind the reading aid
-lib/portal/        the read-only query layer the CLI and MCP server share
+lib/insights/      GitHub reader and the two Claude calls behind CalIntelligence
 lib/supabase/      browser, server and service-role clients
-scripts/           seed data, the organizer CLI, the MCP server
+scripts/           the seed, and the script that warms CalIntelligence
 tests/lib/         pure functions, no network
 tests/rls/         the security policies, against the real project
 supabase/migrations/  schema as ordered SQL
@@ -320,6 +335,15 @@ proxy.ts           session refresh and route protection
 
 `proxy.ts` rather than `middleware.ts`: Next 16 renamed the convention, and
 the old filename now logs a deprecation warning.
+
+`next.config.ts` lists `allowedDevOrigins`, which matters only in
+development. `next dev` serves its client chunks to the origin it thinks it
+is being browsed from. Open the same server at `127.0.0.1`, or at the
+machine's address on the network to try the forms on a phone, and those
+requests are refused: the pages render, because that is the server, and then
+nothing hydrates and every button on the application form silently does
+nothing. It takes a while to work out, because a page that renders perfectly
+and ignores its own buttons does not look like a networking problem.
 
 ## Decisions and trade-offs
 
@@ -363,9 +387,10 @@ stopped the wrong person seeing anything.
   value but not who made it or when.
 - Deadline enforcement in the database. It is currently presentational.
 - Real email delivery for decisions, on a proper SMTP provider.
-- An evaluation of the reading aid. Nobody has checked whether its
-  specificity ratings agree with human reviewers, and that is what I would
-  want before trusting it at real volume.
+- An evaluation of CalIntelligence against human reviewers. I checked that
+  it applies its own rubric consistently and that a hostile README cannot
+  move the rating, but nobody has compared its ratings against a committee's,
+  and that is what I would want before trusting it at real volume.
 - Component and end-to-end tests. The pure functions and the security
   policies are covered; the React components and the click-through paths are
   not, and I verified those by hand.

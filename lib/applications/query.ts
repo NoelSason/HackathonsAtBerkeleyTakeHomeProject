@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isApplicationRole, type ApplicationRole } from "./roles.ts";
-import { SUMMARY_COLUMNS } from "./summary.ts";
+import { isApplicationRole, type ApplicationRole } from "./roles";
+import { SUMMARY_COLUMNS } from "./summary";
 import type { Database } from "@/lib/database.types";
 
 type Status = Database["public"]["Enums"]["application_status"];

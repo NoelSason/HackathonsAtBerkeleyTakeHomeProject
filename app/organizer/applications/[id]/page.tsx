@@ -10,7 +10,9 @@ import { StatusBadge } from "@/components/ui/badge";
 import { ApplicationAnswers } from "@/components/organizer/application-answers";
 import { GradeForm } from "@/components/organizer/grade-form";
 import { DecisionControls } from "@/components/organizer/decision-controls";
-import { InsightPanel, type StoredInsight } from "@/components/organizer/insight-panel";
+import { InsightPanel, type Claim, type StoredInsight } from "@/components/organizer/insight-panel";
+import type { RepoOutcome } from "@/lib/insights/generate";
+import type { RepoFacts } from "@/lib/insights/github";
 import { inEventZone } from "@/lib/event";
 
 export const metadata: Metadata = { title: "Application" };
@@ -31,7 +33,9 @@ export default async function ApplicationDetailPage({
       .order("created_at", { ascending: true }),
     supabase
       .from("application_insights")
-      .select("summary, specificity, specificity_reason, repo_url, repo_stats, repo_findings, model, generated_at")
+      .select(
+        "summary, specificity, specificity_reason, claims, repo_url, repo_outcome, repo_stats, repo_findings, model, generated_at",
+      )
       .eq("application_id", id)
       .maybeSingle(),
   ]);
@@ -43,7 +47,7 @@ export default async function ApplicationDetailPage({
   const mine = reviews.find((review) => review.reviewer_id === profile.id);
   const required = APPLICATION_FORMS[application.role].reviewsRequired;
 
-  // A reviewer sees the reading aid only after recording their own judgement,
+  // A reviewer sees CalIntelligence only after recording their own judgement,
   // for the same reason the queue gates revealing an applicant's identity.
   // Directors are deciding rather than blind-reading, so it is open to them.
   const canGenerate = Boolean(mine) || profile.staff_role === "director";
@@ -70,7 +74,7 @@ export default async function ApplicationDetailPage({
 
       <div className="flex flex-col lg:flex-row">
         {/* min-w-0 is load-bearing. A flex item defaults to min-width:auto, so
-            it refuses to shrink below its widest child — and the reading aid
+            it refuses to shrink below its widest child — and CalIntelligence
             renders raw repository JSON in a <pre>, which does not wrap. Without
             this the column grew to the width of the longest line and gave the
             whole page a horizontal scrollbar tens of thousands of pixels wide,
@@ -191,17 +195,20 @@ export default async function ApplicationDetailPage({
 /**
  * Narrows the stored insight row into the shape the panel renders.
  *
- * `repo_stats` and `repo_findings` are jsonb, so they arrive typed as `Json`.
- * Rather than assert them into place, this checks the two fields the panel
- * actually reaches into and drops anything malformed, so a row written by an
- * older version of the generator degrades to "no repository section" instead
- * of throwing mid-render.
+ * Four of these columns are jsonb, so they arrive typed as `Json`. Rather than
+ * assert them into place, each is checked for the shape the panel actually
+ * reaches into and anything malformed is dropped. A row written by an earlier
+ * version of the generator — one with no claims and no recorded outcome —
+ * therefore renders as a reading with those sections missing, rather than
+ * throwing halfway through a render.
  */
 function toStoredInsight(row: {
   summary: string;
   specificity: number;
   specificity_reason: string;
+  claims: unknown;
   repo_url: string | null;
+  repo_outcome: unknown;
   repo_stats: unknown;
   repo_findings: unknown;
   model: string;
@@ -217,14 +224,33 @@ function toStoredInsight(row: {
     Array.isArray((findings as { adds?: unknown }).adds) &&
     Array.isArray((findings as { discrepancies?: unknown }).discrepancies);
 
+  const claims = Array.isArray(row.claims)
+    ? row.claims.filter(
+        (claim): claim is Claim =>
+          typeof claim === "object" &&
+          claim !== null &&
+          typeof (claim as { field?: unknown }).field === "string" &&
+          typeof (claim as { quote?: unknown }).quote === "string",
+      )
+    : [];
+
+  const outcome =
+    typeof row.repo_outcome === "object" &&
+    row.repo_outcome !== null &&
+    typeof (row.repo_outcome as { state?: unknown }).state === "string"
+      ? (row.repo_outcome as RepoOutcome)
+      : null;
+
   return {
     summary: row.summary,
     specificity: row.specificity,
     specificity_reason: row.specificity_reason,
+    claims,
     repo_url: row.repo_url,
+    repo_outcome: outcome,
     repo_stats:
       typeof row.repo_stats === "object" && row.repo_stats !== null
-        ? (row.repo_stats as Record<string, unknown>)
+        ? (row.repo_stats as RepoFacts)
         : null,
     repo_findings: isFindings
       ? (findings as { corroborates: string[]; adds: string[]; discrepancies: string[] })

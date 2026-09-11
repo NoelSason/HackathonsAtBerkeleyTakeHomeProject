@@ -59,7 +59,7 @@ export function daysUntilDeadline(now: Date = new Date()): number {
  * UTC; client components format in the reader's browser. The same submission
  * was therefore appearing as 13:48 in the applications table and 8:48 PM on
  * its own detail page, and a review written a moment ago sat next to a
- * reading aid stamped seven hours later.
+ * model reading stamped seven hours later.
  *
  * Pinning one zone fixes that, and Pacific is the right one rather than the
  * reader's own: every deadline in the product is quoted in Pacific, so a

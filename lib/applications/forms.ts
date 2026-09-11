@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApplicationRole } from "./roles.ts";
+import type { ApplicationRole } from "./roles";
 
 /*
  * Every question in the portal is defined here, and one renderer draws all of
@@ -268,6 +268,13 @@ export const APPLICATION_FORMS: Record<ApplicationRole, ApplicationForm> = {
             required: true,
             options: ["On-site", "Remote", "Either"],
           },
+          {
+            id: "portfolio",
+            label: "Something you've built or written",
+            type: "url",
+            help: "Optional. A public GitHub repository lets a reviewer see the work itself.",
+            placeholder: "github.com/yourname/project",
+          },
         ],
       },
       {
@@ -323,6 +330,13 @@ export const APPLICATION_FORMS: Record<ApplicationRole, ApplicationForm> = {
             type: "long_text",
             required: true,
             maxLength: 500,
+          },
+          {
+            id: "portfolio",
+            label: "Something you've built or written",
+            type: "url",
+            help: "Optional. A public GitHub repository lets a reviewer see the work itself.",
+            placeholder: "github.com/yourname/project",
           },
         ],
       },

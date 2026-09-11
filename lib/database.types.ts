@@ -25,9 +25,11 @@ export type Database = {
       application_insights: {
         Row: {
           application_id: string
+          claims: Json | null
           generated_at: string
           model: string
           repo_findings: Json | null
+          repo_outcome: Json | null
           repo_stats: Json | null
           repo_url: string | null
           specificity: number
@@ -36,9 +38,11 @@ export type Database = {
         }
         Insert: {
           application_id: string
+          claims?: Json | null
           generated_at?: string
           model: string
           repo_findings?: Json | null
+          repo_outcome?: Json | null
           repo_stats?: Json | null
           repo_url?: string | null
           specificity: number
@@ -47,9 +51,11 @@ export type Database = {
         }
         Update: {
           application_id?: string
+          claims?: Json | null
           generated_at?: string
           model?: string
           repo_findings?: Json | null
+          repo_outcome?: Json | null
           repo_stats?: Json | null
           repo_url?: string | null
           specificity?: number
@@ -284,7 +290,9 @@ export type Database = {
           p_summary: string
           p_specificity: number
           p_specificity_reason: string
+          p_claims: Json | null
           p_repo_url: string | null
+          p_repo_outcome: Json | null
           p_repo_stats: Json | null
           p_repo_findings: Json | null
           p_model: string

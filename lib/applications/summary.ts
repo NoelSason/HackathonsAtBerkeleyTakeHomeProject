@@ -1,5 +1,5 @@
 import type { Database } from "@/lib/database.types";
-import type { ApplicationRole } from "./roles.ts";
+import type { ApplicationRole } from "./roles";
 
 type Row = Database["public"]["Views"]["application_summary"]["Row"];
 type Status = Database["public"]["Enums"]["application_status"];

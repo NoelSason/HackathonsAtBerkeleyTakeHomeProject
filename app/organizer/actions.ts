@@ -4,15 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireDirector, requireOrganizer } from "@/lib/auth";
-import { generateInsight, INSIGHT_MODEL } from "@/lib/insights/generate";
-import type { Database, Json } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types";
 
 type Status = Database["public"]["Enums"]["application_status"];
 
 export type ActionResult = { error: string | null };
-
-/** Adds how many readings are left today, so the panel can say so up front. */
-export type InsightResult = ActionResult & { remaining?: number };
 
 const reviewSchema = z.object({
   applicationId: z.uuid(),
@@ -98,96 +94,6 @@ export async function decideApplications(input: {
 
   revalidatePath("/organizer/applications");
   return { error: null };
-}
-
-/**
- * Produces the reading aid for one application and stores it.
- *
- * Gated on the caller having already scored this application, unless they are
- * a director. That is the same principle as revealing an applicant's identity
- * in the queue: a reviewer forms their own judgement first, and only then
- * sees anything that might anchor it. Directors are deciding rather than
- * blind-reading, so the gate does not apply to them.
- *
- * The result is cached in the database rather than regenerated per view, so
- * two reviewers looking at the same application read identical text. A model
- * called twice would produce two slightly different readings, which would put
- * variance back into the one place this portal works to remove it.
- */
-export async function requestInsight(applicationId: string): Promise<InsightResult> {
-  const profile = await requireOrganizer();
-
-  // Validated here for the same reason submitReview validates its input: the
-  // id reaches a uuid function parameter, and a malformed one should be a
-  // sentence rather than a Postgres cast error.
-  if (!z.uuid().safeParse(applicationId).success) {
-    return { error: "That application no longer exists." };
-  }
-
-  const supabase = await createClient();
-
-  if (profile.staff_role !== "director") {
-    const { data: ownReview } = await supabase
-      .from("reviews")
-      .select("score")
-      .eq("application_id", applicationId)
-      .eq("reviewer_id", profile.id)
-      .maybeSingle();
-
-    if (!ownReview) {
-      return { error: "Submit your own score first, then this becomes available." };
-    }
-  }
-
-  const { data: application } = await supabase
-    .from("applications")
-    .select("role, responses, status")
-    .eq("id", applicationId)
-    .maybeSingle();
-
-  if (!application) return { error: "That application no longer exists." };
-  if (application.status === "draft") {
-    return { error: "This application has not been submitted yet." };
-  }
-
-  // Claimed before the model is called, so a request that is going to be
-  // refused costs nothing. The function raises rather than returning a flag,
-  // and it does the counting itself: putting the limit in the database is
-  // what makes it a limit, since save_application_insight is reachable
-  // straight off the REST API by any organizer.
-  const { data: remaining, error: budgetError } = await supabase.rpc("claim_insight_budget", {
-    p_application_id: applicationId,
-  });
-
-  if (budgetError) {
-    // P0001 is the daily cap, P0002 the regeneration cooldown. Both carry a
-    // message written to be read by an organizer; anything else is ours.
-    const known = budgetError.code === "P0001" || budgetError.code === "P0002";
-    return { error: known ? budgetError.message : "Could not start that reading." };
-  }
-
-  const result = await generateInsight(
-    application.role,
-    (application.responses ?? {}) as Record<string, unknown>,
-  );
-
-  if (!result.ok) return { error: result.reason };
-
-  const { error } = await supabase.rpc("save_application_insight", {
-    p_application_id: applicationId,
-    p_summary: result.insight.summary,
-    p_specificity: result.insight.specificity,
-    p_specificity_reason: result.insight.specificity_reason,
-    p_repo_url: result.repoUrl,
-    p_repo_stats: result.repoStats as unknown as Json,
-    p_repo_findings: result.insight.repo as unknown as Json,
-    p_model: INSIGHT_MODEL,
-  });
-
-  if (error) return { error: "Generated it, but could not save it." };
-
-  revalidatePath(`/organizer/applications/${applicationId}`);
-  return { error: null, remaining };
 }
 
 /**
