@@ -189,3 +189,25 @@ export async function requestInsight(applicationId: string): Promise<InsightResu
   revalidatePath(`/organizer/applications/${applicationId}`);
   return { error: null, remaining };
 }
+
+/**
+ * Takes back every review the caller has written.
+ *
+ * The scope lives in the database function, which reads the reviewer from the
+ * session rather than taking one as an argument. That is deliberate: there is
+ * no delete policy on reviews, because one organizer removing another's
+ * record of what they thought is exactly the silent edit this schema refuses
+ * to allow, and a function that accepted a reviewer id would reintroduce it.
+ */
+export async function resetMyReviews(): Promise<ActionResult & { removed?: number }> {
+  await requireOrganizer();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reset_my_reviews");
+
+  if (error) return { error: "Could not clear those reviews." };
+
+  revalidatePath("/organizer/review");
+  revalidatePath("/organizer/applications");
+  return { error: null, removed: data ?? 0 };
+}

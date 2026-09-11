@@ -8,6 +8,7 @@ import { ROLE_COPY } from "@/lib/applications/roles";
 import { generaliseSchool } from "@/lib/applications/school-groups";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
 import { cn } from "@/lib/cn";
+import { ResetReviews } from "@/components/organizer/reset-reviews";
 
 const SCORES = [1, 2, 3, 4, 5] as const;
 
@@ -30,7 +31,14 @@ function formatSeconds(seconds: number): string {
  * into a second tab; requiring the score first means the judgement is
  * already recorded before the name can influence it.
  */
-export function ReviewQueue({ initial }: { initial: QueueItem }) {
+export function ReviewQueue({
+  initial,
+  reviewsWritten,
+}: {
+  initial: QueueItem;
+  /** How many reviews this organizer has written, for the reset control. */
+  reviewsWritten: number;
+}) {
   const [item, setItem] = useState(initial);
   const [score, setScore] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
@@ -125,6 +133,9 @@ export function ReviewQueue({ initial }: { initial: QueueItem }) {
   if (!application) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <div className="mb-6">
+          <ResetReviews count={reviewsWritten} />
+        </div>
         <p className="text-lg font-bold">The queue is empty.</p>
         <p className="mt-2 max-w-100 text-sm text-muted">
           Every application waiting for a read has either reached its target or already been read
@@ -148,7 +159,15 @@ export function ReviewQueue({ initial }: { initial: QueueItem }) {
 
   return (
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
-      <div className="flex flex-1 justify-center overflow-hidden px-4 pt-9">
+      {/* Above the card rather than inside it. Everything inside is about the
+          application being read; this is about the reader's own history. */}
+      <div className="flex justify-center px-4 pt-4">
+        <div className="flex w-full max-w-205 justify-end">
+          <ResetReviews count={reviewsWritten} />
+        </div>
+      </div>
+
+      <div className="flex flex-1 justify-center overflow-hidden px-4 pt-5">
         <article className="w-full max-w-205 rounded-t-control border border-b-0 border-line bg-surface px-6 py-9 sm:px-12">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-5">
             <div className="flex flex-wrap items-center gap-3">
