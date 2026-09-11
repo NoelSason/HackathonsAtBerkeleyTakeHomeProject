@@ -39,26 +39,51 @@ function hash(value: string): number {
   return total;
 }
 
+/**
+ * Removes the accounts this script owns, and only those.
+ *
+ * It used to delete every user. That is the obvious reading of "reset the
+ * demo data", and it is wrong: somebody signing up on the deployed site is
+ * making a real account with a real application, and a script that rebuilds
+ * fixtures has no business destroying it. It happened — a genuine sign-up and
+ * the application behind it were gone half an hour later, with no error
+ * anywhere, because the row had simply ceased to exist.
+ *
+ * So the boundary is explicit. Every seeded account is listed in PEOPLE, and
+ * only addresses on that list are deleted. Anything else on the project is
+ * somebody's own and is left alone, applications included.
+ */
 async function wipe() {
+  const seeded = new Set(PEOPLE.map((person) => person.email));
+
   const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
   if (error) throw error;
 
   // Applications, reviews and profiles all cascade from auth.users, so
-  // deleting the users is enough to empty the whole schema.
+  // deleting the user is enough to remove everything that hung off it.
+  let removed = 0;
   for (const user of data.users) {
+    if (!user.email || !seeded.has(user.email)) continue;
+
     const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
     if (deleteError) throw deleteError;
+    removed += 1;
   }
 
-  // Rewind the application numbering too. Deleting the rows does not rewind
-  // the identity sequence behind display_id, so without this each reseed
-  // started where the last one stopped and every number quoted in a demo
-  // script or a screenshot went stale. Safe only because the table is empty
-  // at this point, which the function checks for itself.
-  const { error: resetError } = await supabase.rpc("reset_application_display_ids");
-  if (resetError) throw resetError;
+  const kept = data.users.length - removed;
 
-  console.log(`  wiped ${data.users.length} existing users`);
+  // Rewind the application numbering, so the same seed run twice produces the
+  // same application numbers and a demo script quoting one does not go stale.
+  // Only possible when nothing else is holding a number, which is why the
+  // function refuses if any application survived the wipe above.
+  const { error: resetError } = await supabase.rpc("reset_application_display_ids");
+  if (resetError && kept === 0) throw resetError;
+
+  console.log(
+    kept === 0
+      ? `  removed ${removed} seeded accounts`
+      : `  removed ${removed} seeded accounts, kept ${kept} real one(s); numbering left as is`,
+  );
 }
 
 async function createPeople(): Promise<Map<string, string>> {

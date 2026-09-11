@@ -277,6 +277,7 @@ export type Database = {
       is_director: { Args: never; Returns: boolean }
       organizer_analytics: { Args: { p_targets: Json }; Returns: Json }
       reset_application_display_ids: { Args: never; Returns: undefined }
+      reset_my_reviews: { Args: never; Returns: number }
       save_application_insight: {
         Args: {
           p_application_id: string
