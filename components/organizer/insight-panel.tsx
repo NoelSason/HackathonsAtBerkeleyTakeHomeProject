@@ -48,20 +48,23 @@ type Live = {
   model: string | null;
 };
 
-const EMPTY: Live = {
-  running: true,
-  stage: "Starting",
-  summary: "",
-  specificity: null,
-  specificityReason: "",
-  claims: [],
-  dropped: 0,
-  outcome: null,
-  facts: null,
-  comparison: null,
-  finishedAt: null,
-  model: null,
-};
+/** The starting point for a run: whatever is already on screen, or nothing. */
+function seed(insight: StoredInsight | null): Live {
+  return {
+    running: true,
+    stage: "Starting",
+    summary: insight?.summary ?? "",
+    specificity: insight?.specificity ?? null,
+    specificityReason: insight?.specificity_reason ?? "",
+    claims: insight?.claims ?? [],
+    dropped: 0,
+    outcome: insight?.repo_outcome ?? null,
+    facts: insight?.repo_stats ?? null,
+    comparison: insight?.repo_findings ?? null,
+    finishedAt: insight?.generated_at ?? null,
+    model: insight?.model ?? null,
+  };
+}
 
 /**
  * CalIntelligence — a reading aid for the committee, not a second opinion.
@@ -108,7 +111,12 @@ export function InsightPanel({
    */
   async function generate() {
     setError(null);
-    setLive(EMPTY);
+    // Seeded from the reading already on screen rather than from nothing.
+    // "Read it again" used to blank the panel for the eight seconds before
+    // the new summary started arriving, which looks like something broke
+    // rather than like work happening. The old reading stays put and each
+    // part is replaced as its event lands.
+    setLive(seed(insight));
 
     let response: Response;
     try {
@@ -671,7 +679,7 @@ function fromLive(live: Live): View {
     outcome: live.outcome,
     facts: live.facts,
     comparison: live.comparison,
-    repoUrl: live.facts ? live.facts.url : null,
+    repoUrl: live.facts?.url ?? null,
     model: live.model,
     generatedAt: live.finishedAt,
   };
