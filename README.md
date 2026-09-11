@@ -130,12 +130,12 @@ z-score against that reviewer's own mean and spread. In the seeded data:
 
 | Applicant | Raw mean | Rank by raw | Rank calibrated |
 | --- | --- | --- | --- |
-| Rosa Delgado | 5.00 | 1 | 6 |
-| Amara Okafor | 4.67 | 2 | 1 |
+| Rosa Delgado | 5.00 | 1 | 14 |
+| Amara Okafor | 4.67 | 8 | 5 |
 
 Rosa's single 5 came from the most generous reviewer, whose own average is
 4.4. Amara's *lowest* score was a 4 from the harshest reviewer, whose average
-is 3.1. Calibrated, Amara moves ahead.
+is 3.1. Calibrated, Amara moves ahead of her.
 
 Across the whole pile the effect is larger: a volunteer with a single 4 from
 the harshest reviewer ranks nineteenth on raw score and first once
