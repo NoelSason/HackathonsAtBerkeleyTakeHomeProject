@@ -171,17 +171,19 @@ applications:
   repository facts sit on the same page, so a reviewer checks the model's
   reading rather than trusting it.
 
-**It is deliberately absent from the blind queue**, which is the only place
-this product is actually blind. It is open to any organizer on the detail
-page, and an earlier version was not: that page already shows the applicant's
-name, their school and every score another organizer has left, so requiring a
-reviewer to score before reading a summary of the answers printed above it
-protected nothing the page had not already given away.
+**It is open to any organizer on the detail page**, and an earlier version was
+not: that page already shows the applicant's name, their school and every
+score another organizer has left, so requiring a reviewer to score before
+reading a summary of the answers printed above it protected nothing the page
+had not already given away.
 
-It cannot be added to the queue either, even if the anchoring argument were
-set aside: the repository facts contain the applicant's GitHub account name,
-because the URL is their account name, and the queue cannot generalise that
-the way it generalises a school.
+**It appears in the blind queue too, split in half.** The summary, the
+evidence rating and the quotations come from the answers already on the card,
+so they tell a reviewer nothing new about who the applicant is. The repository
+section does: the link is `github.com/theirname/project`, so the URL, the
+owner, the contributor logins and the model's own sentences all name the
+account. That half waits for the same Reveal that uncovers the name, which is
+the rule the card already applies to every link field in an application.
 
 **Two calls, in parallel, with different information.** The reader sees only
 the written answers and produces the summary, the rating and the quotations.

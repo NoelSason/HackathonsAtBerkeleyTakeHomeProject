@@ -71,8 +71,10 @@ export async function POST(
          * school and every score another organizer has left, so gating a
          * summary of the answers printed above it protected nothing.
          *
-         * The anchoring defence lives where the page is actually blind. The
-         * review queue has no CalIntelligence panel and is not getting one.
+         * The queue shows a reading too, but only the half drawn from the
+         * answers already on the card. Its repository section waits for the
+         * same Reveal that uncovers the name, because a repository address is
+         * an account name. See QueueInsight.
          */
         const { data: application } = await supabase
           .from("applications")

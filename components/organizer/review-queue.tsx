@@ -9,6 +9,7 @@ import { generaliseSchool } from "@/lib/applications/school-groups";
 import { APPLICATION_FORMS } from "@/lib/applications/forms";
 import { cn } from "@/lib/cn";
 import { ResetReviews } from "@/components/organizer/reset-reviews";
+import { QueueInsight } from "@/components/organizer/insight-panel";
 
 const SCORES = [1, 2, 3, 4, 5] as const;
 
@@ -231,6 +232,8 @@ export function ReviewQueue({
               responses={application.responses}
               blind={!revealed}
             />
+
+            <QueueInsight insight={item.insight} blind={!revealed} />
           </div>
         </article>
       </div>

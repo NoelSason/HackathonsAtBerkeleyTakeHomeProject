@@ -7,21 +7,9 @@ import { cn } from "@/lib/cn";
 import { inEventZone } from "@/lib/event";
 import type { RepoFacts } from "@/lib/insights/github";
 import type { Comparison, RepoOutcome } from "@/lib/insights/generate";
+import type { Claim, StoredInsight } from "@/lib/insights/stored";
 
-export type Claim = { field: string; quote: string };
-
-export type StoredInsight = {
-  summary: string;
-  specificity: number;
-  specificity_reason: string;
-  claims: Claim[];
-  repo_url: string | null;
-  repo_outcome: RepoOutcome | null;
-  repo_stats: RepoFacts | null;
-  repo_findings: Comparison | null;
-  model: string;
-  generated_at: string;
-};
+export type { Claim, StoredInsight };
 
 const SPECIFICITY_LABELS = [
   "",
@@ -717,3 +705,163 @@ type StreamEvent =
   | { type: "comparison"; comparison: Comparison | null }
   | { type: "done"; remaining: number | null; model: string; generatedAt: string }
   | { type: "error"; message: string };
+
+/* ---------------------------------------------------------------------- */
+
+/**
+ * CalIntelligence inside the blind review queue.
+ *
+ * Read-only: nothing is generated from here. The queue exists to keep a
+ * reviewer moving, and seventeen seconds of watching a model write is the
+ * opposite of that. Every seeded application already carries a reading, and an
+ * application with none simply says so.
+ *
+ * **The repository half waits for Reveal, and it is not a taste decision.**
+ * The link is `github.com/theirname/project`, so the URL, the owner, the
+ * contributor logins and the last committer are all the applicant's identity —
+ * and the model's own sentences name the repository throughout, which is not
+ * something that can be scrubbed after the fact. The card two inches above
+ * already drops every `url` field for exactly this reason. Showing it here
+ * while the name is hidden would undo the anonymity the rest of the screen is
+ * built around, so it appears on the same gate as the name: once a score is
+ * recorded and the reviewer chooses to look.
+ *
+ * What does show while blind comes entirely from the answers already on
+ * screen — the summary of them, how much of them can be checked, and
+ * quotations lifted out of them. None of that tells a reviewer anything the
+ * card has not already told them.
+ */
+export function QueueInsight({
+  insight,
+  blind,
+}: {
+  insight: StoredInsight | null;
+  blind: boolean;
+}) {
+  if (!insight) {
+    return (
+      <section className="mt-8 border-t border-line pt-6">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-faint">CALINTELLIGENCE</p>
+        <p className="mt-2 text-[13px] text-muted">
+          Nothing has been read for this application yet. It can be generated from the
+          application&rsquo;s own page.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-8 border-t border-line pt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-faint">CALINTELLIGENCE</p>
+        <p className="font-mono text-[11px] text-faint">{insight.model}</p>
+      </div>
+
+      <p className="mt-3 max-w-160 text-[14px] leading-relaxed">{insight.summary}</p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="font-mono text-[11px] tracking-[0.08em] text-faint">EVIDENCE DENSITY</span>
+        <span className="flex gap-1" aria-hidden>
+          {[1, 2, 3, 4, 5].map((step) => (
+            <span
+              key={step}
+              className={cn(
+                "h-1.5 w-7 rounded-full",
+                step <= insight.specificity ? "bg-berkeley" : "bg-line",
+              )}
+            />
+          ))}
+        </span>
+        <span className="text-[13px] font-semibold">
+          {SPECIFICITY_LABELS[insight.specificity] ?? ""}
+        </span>
+      </div>
+
+      <p className="mt-2 max-w-160 text-[13px] leading-snug text-muted">
+        {insight.specificity_reason}
+      </p>
+      <p className="mt-1.5 max-w-160 text-[12px] text-faint">
+        This measures how much of the writing can be checked, not how good the applicant is.
+      </p>
+
+      {insight.claims.length > 0 && (
+        <div className="mt-5">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-faint">WHAT CAN BE CHECKED</p>
+          <ul className="mt-2 space-y-2">
+            {insight.claims.map((claim) => (
+              <li key={`${claim.field}-${claim.quote}`} className="max-w-160">
+                <p className="border-l-2 border-line-strong pl-3 text-[13px] leading-snug">
+                  &ldquo;{claim.quote}&rdquo;
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-5">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-faint">LINKED REPOSITORY</p>
+        {blind ? (
+          <p className="mt-2 max-w-160 text-[13px] leading-snug text-muted">
+            Held back while the applicant is anonymous. A repository address is an account name,
+            so it would give away who this is. Choose a score and reveal to see it.
+          </p>
+        ) : (
+          <RepositoryBody insight={insight} />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** The repository half, once a reviewer has scored and chosen to look. */
+function RepositoryBody({ insight }: { insight: StoredInsight }) {
+  const note = insight.repo_outcome ? outcomeNote(insight.repo_outcome) : null;
+
+  if (note) {
+    return <p className="mt-2 max-w-160 text-[13px] leading-snug text-muted">{note}</p>;
+  }
+
+  return (
+    <>
+      {insight.repo_url && (
+        <a
+          href={insight.repo_url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-1 inline-block font-mono text-[12px] text-berkeley hover:underline"
+        >
+          {insight.repo_url.replace("https://github.com/", "")}
+        </a>
+      )}
+
+      {insight.repo_stats && <RepoHighlights facts={insight.repo_stats} />}
+
+      {insight.repo_findings?.what_it_is && (
+        <p className="mt-3 max-w-160 text-[13px] leading-relaxed">
+          {insight.repo_findings.what_it_is}
+        </p>
+      )}
+
+      {insight.repo_findings && (
+        <div className="mt-4 space-y-3">
+          <FindingList
+            label="Backs up the essay"
+            tone="positive"
+            items={insight.repo_findings.corroborates}
+          />
+          <FindingList
+            label="Not mentioned in the essay"
+            tone="neutral"
+            items={insight.repo_findings.adds}
+          />
+          <FindingList
+            label="Does not line up"
+            tone="warning"
+            items={insight.repo_findings.discrepancies}
+          />
+        </div>
+      )}
+    </>
+  );
+}
