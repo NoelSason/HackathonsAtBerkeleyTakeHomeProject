@@ -50,6 +50,14 @@ async function wipe() {
     if (deleteError) throw deleteError;
   }
 
+  // Rewind the application numbering too. Deleting the rows does not rewind
+  // the identity sequence behind display_id, so without this each reseed
+  // started where the last one stopped and every number quoted in a demo
+  // script or a screenshot went stale. Safe only because the table is empty
+  // at this point, which the function checks for itself.
+  const { error: resetError } = await supabase.rpc("reset_application_display_ids");
+  if (resetError) throw resetError;
+
   console.log(`  wiped ${data.users.length} existing users`);
 }
 
