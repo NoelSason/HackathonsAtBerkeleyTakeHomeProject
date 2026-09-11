@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { homeFor } from "@/lib/landing";
 import type { Database } from "@/lib/database.types";
 
 /** Routes a signed-out visitor is allowed to reach. */
@@ -80,7 +81,7 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     const home = request.nextUrl.clone();
-    home.pathname = profile?.staff_role ? "/organizer/applications" : "/dashboard";
+    home.pathname = homeFor(profile?.staff_role ?? null);
     home.search = "";
     return NextResponse.redirect(home);
   }

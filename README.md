@@ -20,6 +20,14 @@ Password for all three is `calhacks2026`.
 Signing up is open. Entering the organizer code during sign-up creates a
 reviewer account; directors are not self-serve.
 
+**Each role lands where its work is.** A reviewer signs in to the blind queue,
+a director to the applications list, an applicant to their own dashboard. That
+is one function in `lib/landing.ts` rather than a literal in two places,
+because the sign-in action and the proxy both need the answer. The reviewer
+case is the one that matters: the queue takes away the choice of what to read
+next and hides names until a score is in, and landing a reviewer on the full
+pile hands both of those back before they find the right tab.
+
 `GITHUB_TOKEN` is optional and documented in `.env.example`. Without it
 GitHub allows sixty requests an hour per IP address, and one application
 costs six of them. CalIntelligence works either way — a repository it could

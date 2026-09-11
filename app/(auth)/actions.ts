@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuthState } from "@/lib/auth-form-state";
 import { readSignIn, readSignUp } from "@/lib/auth-schemas";
+import { homeFor } from "@/lib/landing";
 
 /**
  * The path the proxy remembered, if it is safe to send somebody to.
@@ -18,18 +19,6 @@ function safeNext(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
     ? value
     : null;
-}
-
-/**
- * Where somebody lands when they have not asked for anywhere in particular.
- *
- * An organizer signing in wants the applications pile, not their own empty
- * applicant dashboard. Sign-up has always routed by role; sign-in sent
- * everyone to /dashboard, which was invisible only while a bug there showed
- * organizers the whole pile anyway.
- */
-function homeFor(staffRole: string | null): string {
-  return staffRole === null ? "/dashboard" : "/organizer/applications";
 }
 
 /*
@@ -154,7 +143,9 @@ export async function signUp(_previous: AuthState, formData: FormData): Promise<
     };
   }
 
-  redirect(wantsOrganizer ? "/organizer/applications" : "/dashboard");
+  // The code only ever grants "reviewer", so a new organizer starts in the
+  // queue for the same reason one signing in does.
+  redirect(homeFor(wantsOrganizer ? "reviewer" : null));
 }
 
 export async function signOut() {
