@@ -27,10 +27,12 @@ function formatSeconds(seconds: number): string {
  * school are the strongest bias cues in an application, so they are not on
  * screen while the score is being decided.
  *
- * Revealing is possible but gated behind having chosen a score. Looking is
- * sometimes legitimate, and blocking it outright would just push reviewers
- * into a second tab; requiring the score first means the judgement is
- * already recorded before the name can influence it.
+ * The name, the real school and the linked repository appear the moment a
+ * score is recorded. Looking is sometimes legitimate, and blocking it
+ * outright would just push reviewers into a second tab; what matters is only
+ * that the judgement is recorded before the identity can influence it, and
+ * choosing a number is that moment. An earlier version made it a second
+ * click, which bought nothing and cost one on every application.
  */
 export function ReviewQueue({
   initial,
@@ -59,6 +61,25 @@ export function ReviewQueue({
   useEffect(() => {
     startedAt.current = Date.now();
   }, [application?.id]);
+
+  /**
+   * Recording a score is what uncovers the applicant.
+   *
+   * The queue hides the name, the real school and the linked repository while
+   * a reviewer is deciding, and the point of that is only ever that **the
+   * judgement is recorded before the identity can move it.** Once a number is
+   * chosen that has happened, so making the reviewer click a second button to
+   * see who they just scored buys nothing and costs a click on every one of
+   * thirty applications.
+   *
+   * A reviewer can still change the score afterwards. They always could —
+   * revealing was never a commitment — and a queue that locked the number in
+   * would be worse than one that trusts the person using it.
+   */
+  const choose = useCallback((value: number) => {
+    setScore(value);
+    setRevealed(true);
+  }, []);
 
   const advance = useCallback(
     (skipIds: string[]) => {
@@ -106,7 +127,7 @@ export function ReviewQueue({
 
       if (event.key >= "1" && event.key <= "5" && !typing) {
         event.preventDefault();
-        setScore(Number(event.key));
+        choose(Number(event.key));
         return;
       }
 
@@ -126,7 +147,7 @@ export function ReviewQueue({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [submit, skip]);
+  }, [submit, skip, choose]);
 
   const averageSeconds =
     durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
@@ -193,15 +214,17 @@ export function ReviewQueue({
                   avg {formatSeconds(averageSeconds)}
                 </span>
               )}
-              <button
-                type="button"
-                onClick={() => setRevealed(true)}
-                disabled={score === null || revealed}
-                title={score === null ? "Choose a score first" : "Show who this is"}
-                className="text-[12px] font-semibold text-berkeley transition-colors hover:underline disabled:cursor-not-allowed disabled:text-faint disabled:no-underline"
+              {/* Not a button any more. The name appears the moment a score
+                  is recorded, so this only ever reports which of the two
+                  states the card is in. */}
+              <span
+                className={cn(
+                  "text-[12px] font-semibold",
+                  revealed ? "text-ink" : "text-faint",
+                )}
               >
-                {revealed ? application.fullName : "Reveal"}
-              </button>
+                {revealed ? application.fullName : "Hidden until you score"}
+              </span>
             </div>
           </header>
 
@@ -246,7 +269,7 @@ export function ReviewQueue({
                 key={value}
                 type="button"
                 aria-pressed={score === value}
-                onClick={() => setScore(value)}
+                onClick={() => choose(value)}
                 className={cn(
                   "h-11 w-11 rounded-control border font-mono text-base transition-colors",
                   score === value

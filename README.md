@@ -118,8 +118,9 @@ next and no application starves. Scoring is `1`–`5` on the keyboard, `Enter`
 to submit, `S` to skip.
 
 **Consistency.** Applicant identity is hidden while the score is being
-decided. Revealing is possible but requires choosing a score first, so the
-judgement is recorded before the name can move it. School is generalised
+decided. The name, the real school and the linked repository all appear the
+moment a score is recorded, so the judgement is on the record before the
+identity can move it and nobody pays a second click for it. School is generalised
 rather than hidden, because circumstances are context a reviewer legitimately
 needs while the specific name is the prestige cue worth removing.
 

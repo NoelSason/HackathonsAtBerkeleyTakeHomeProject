@@ -934,6 +934,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Go, Kubernetes, Terraform",
       shifts: ["Saturday afternoon", "Saturday night", "Sunday morning"],
       presence: "On-site",
+      portfolio: "https://github.com/cloudflare/workerd",
       mentoring_approach:
         "Saturday night is when teams make their worst architectural decisions because they are tired. I try to be the person who asks whether the thing they are about to rewrite actually needs rewriting.",
     }),
@@ -957,6 +958,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "TypeScript, Python, FHIR",
       shifts: ["Saturday morning", "Sunday afternoon"],
       presence: "Either",
+      portfolio: "https://github.com/google/fhir",
       mentoring_approach:
         "Health data has rules that are not obvious and teams walk into them constantly. I mostly stop people from building something they would have to throw away.",
     }),
@@ -978,6 +980,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "TypeScript, React, WebGL",
       shifts: ["Saturday afternoon", "Sunday morning"],
       presence: "On-site",
+      portfolio: "https://github.com/pmndrs/react-three-fiber",
       mentoring_approach:
         "Most demos fail because nobody looked at the thing on a projector. I make teams do that on Saturday afternoon, not Sunday at ten.",
     }),
@@ -996,6 +999,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Scala, Spark, Airflow",
       shifts: ["Sunday morning"],
       presence: "Remote",
+      portfolio: "https://github.com/apache/airflow",
       mentoring_approach: "I am good at telling people their data pipeline does not need to be a data pipeline.",
     }),
     reviews: {
@@ -1017,6 +1021,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "C, Rust, Zephyr",
       shifts: ["Friday evening", "Saturday morning", "Saturday afternoon", "Sunday morning"],
       presence: "On-site",
+      portfolio: "https://github.com/zephyrproject-rtos/zephyr",
       mentoring_approach:
         "Hardware teams lose Saturday to a wiring fault they could have found in ten minutes with a multimeter. I bring three multimeters.",
     }),
@@ -1039,6 +1044,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Python, PyTorch",
       shifts: ["Saturday night"],
       presence: "On-site",
+      portfolio: "https://github.com/huggingface/transformers",
       mentoring_approach: "I can tell someone quickly whether their evaluation is measuring what they think it is measuring.",
     }),
   },
@@ -1056,6 +1062,7 @@ export const APPLICATIONS: SeedApplication[] = [
       stack: "Python, Bash, CI systems",
       shifts: ["Saturday morning", "Saturday afternoon"],
       presence: "On-site",
+      portfolio: "https://github.com/nektos/act",
       mentoring_approach: "I have unstuck about fifty people from broken CI. It is nearly always the same five things.",
     }),
     reviews: {
@@ -1107,6 +1114,7 @@ export const APPLICATIONS: SeedApplication[] = [
       tracks: ["Fintech", "Civic tech"],
       evaluation_strengths:
         "Whether the team can say who this is for in one sentence without using the word platform.",
+      portfolio: "https://github.com/plaid/plaid-python",
       sunday_availability: "All afternoon",
       conflicts: "I would recuse from anything by a team I have taken a meeting with.",
     }),
@@ -1128,6 +1136,7 @@ export const APPLICATIONS: SeedApplication[] = [
       tracks: ["Health", "Civic tech"],
       evaluation_strengths:
         "I check whether the thing works with a keyboard and a screen reader. Almost nothing does, and teams that thought about it stand out immediately.",
+      portfolio: "https://github.com/dequelabs/axe-core",
       sunday_availability: "Late afternoon only",
     }),
     reviews: {
@@ -1148,6 +1157,7 @@ export const APPLICATIONS: SeedApplication[] = [
       tracks: ["Civic tech", "Climate"],
       evaluation_strengths:
         "I spend all day working out whether someone understands what they built or is repeating it. That is most of judging.",
+      portfolio: "https://github.com/processing/p5.js",
       sunday_availability: "All afternoon",
     }),
   },
@@ -1163,6 +1173,7 @@ export const APPLICATIONS: SeedApplication[] = [
       judging_experience: "First time",
       tracks: ["AI / ML"],
       evaluation_strengths: "I would look for the most technically impressive project.",
+      portfolio: "https://github.com/keras-team/keras",
       sunday_availability: "Early afternoon only",
     }),
     reviews: {
@@ -1182,6 +1193,7 @@ export const APPLICATIONS: SeedApplication[] = [
       judging_experience: "Once or twice",
       tracks: ["Health"],
       evaluation_strengths: "Whether a health claim in a demo is something the data could actually support.",
+      portfolio: "https://github.com/nightscout/cgm-remote-monitor",
       sunday_availability: "All afternoon",
     }),
     reviews: {
@@ -1200,6 +1212,7 @@ export const APPLICATIONS: SeedApplication[] = [
       judging_experience: "Once or twice",
       tracks: ["Developer tools", "Fintech"],
       evaluation_strengths: "I can tell in about ninety seconds whether a repository was written this weekend.",
+      portfolio: "https://github.com/stripe/stripe-python",
       sunday_availability: "Late afternoon only",
       conflicts: "I am also an accepted hacker, so I would recuse from everything in my own track.",
     }),

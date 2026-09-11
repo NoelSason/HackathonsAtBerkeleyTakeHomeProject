@@ -723,8 +723,8 @@ type StreamEvent =
  * something that can be scrubbed after the fact. The card two inches above
  * already drops every `url` field for exactly this reason. Showing it here
  * while the name is hidden would undo the anonymity the rest of the screen is
- * built around, so it appears on the same gate as the name: once a score is
- * recorded and the reviewer chooses to look.
+ * built around, so it appears on the same gate as the name: the moment a
+ * score is recorded.
  *
  * What does show while blind comes entirely from the answers already on
  * screen — the summary of them, how much of them can be checked, and
@@ -804,7 +804,7 @@ export function QueueInsight({
         {blind ? (
           <p className="mt-2 max-w-160 text-[13px] leading-snug text-muted">
             Held back while the applicant is anonymous. A repository address is an account name,
-            so it would give away who this is. Choose a score and reveal to see it.
+            so it would give away who this is. It appears as soon as you score.
           </p>
         ) : (
           <RepositoryBody insight={insight} />
