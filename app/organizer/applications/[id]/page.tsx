@@ -47,10 +47,21 @@ export default async function ApplicationDetailPage({
   const mine = reviews.find((review) => review.reviewer_id === profile.id);
   const required = APPLICATION_FORMS[application.role].reviewsRequired;
 
-  // A reviewer sees CalIntelligence only after recording their own judgement,
-  // for the same reason the queue gates revealing an applicant's identity.
-  // Directors are deciding rather than blind-reading, so it is open to them.
-  const canGenerate = Boolean(mine) || profile.staff_role === "director";
+  /*
+   * Open to any organizer, and it did not start that way.
+   *
+   * The first version required a reviewer to record their own score before
+   * CalIntelligence would run, by analogy with the blind queue. The analogy
+   * does not hold: **this page is not blind.** It already shows the
+   * applicant's name, their school, their email and every score another
+   * organizer has left. Withholding a summary of answers printed directly
+   * above it protected nothing the page had not already given away, and it
+   * cost a reviewer a click and an explanation on every application.
+   *
+   * The anchoring defence lives where the page actually is blind — the queue,
+   * which has no CalIntelligence panel at all and is not getting one.
+   */
+  const canGenerate = true;
   const insight = toStoredInsight(insightRow);
 
   return (
@@ -224,6 +235,13 @@ function toStoredInsight(row: {
     Array.isArray((findings as { adds?: unknown }).adds) &&
     Array.isArray((findings as { discrepancies?: unknown }).discrepancies);
 
+  // `what_it_is` arrived after the first rows were written, so a stored
+  // reading without it degrades to no description rather than to a crash.
+  const described =
+    isFindings && typeof (findings as { what_it_is?: unknown }).what_it_is === "string"
+      ? (findings as { what_it_is: string }).what_it_is
+      : "";
+
   const claims = Array.isArray(row.claims)
     ? row.claims.filter(
         (claim): claim is Claim =>
@@ -248,14 +266,61 @@ function toStoredInsight(row: {
     claims,
     repo_url: row.repo_url,
     repo_outcome: outcome,
-    repo_stats:
-      typeof row.repo_stats === "object" && row.repo_stats !== null
-        ? (row.repo_stats as RepoFacts)
-        : null,
+    repo_stats: toRepoFacts(row.repo_stats),
     repo_findings: isFindings
-      ? (findings as { corroborates: string[]; adds: string[]; discrepancies: string[] })
+      ? {
+          what_it_is: described,
+          ...(findings as { corroborates: string[]; adds: string[]; discrepancies: string[] }),
+        }
       : null,
     model: row.model,
     generated_at: row.generated_at,
+  };
+}
+
+/**
+ * Fills in a stored facts blob that predates the fields the panel now reads.
+ *
+ * The facts CalIntelligence records grew — commit subjects, a directory
+ * breakdown, file types, a dependency manifest — and rows written before that
+ * carry none of them. Casting the stored jsonb straight to `RepoFacts` claims
+ * a shape the row does not have, and the panel duly crashed on
+ * `facts.recentCommits.length` with "Cannot read properties of undefined".
+ *
+ * **A cast is an assertion, and this is the one place in the app where the
+ * data is genuinely older than the type.** Every field the panel touches gets
+ * a default here, so an old row renders as a reading with less in it rather
+ * than as a stack trace.
+ */
+function toRepoFacts(value: unknown): RepoFacts | null {
+  if (typeof value !== "object" || value === null) return null;
+
+  const stored = value as Partial<RepoFacts>;
+  const array = <T,>(input: unknown): T[] => (Array.isArray(input) ? (input as T[]) : []);
+
+  return {
+    ...(stored as RepoFacts),
+    topics: array(stored.topics),
+    homepage: stored.homepage ?? null,
+    hasPages: stored.hasPages ?? false,
+    watchers: stored.watchers ?? 0,
+    sizeKb: stored.sizeKb ?? 0,
+    recentCommits: array(stored.recentCommits),
+    activeDays: stored.activeDays ?? null,
+    firstCommitAt: stored.firstCommitAt ?? null,
+    topContributors: array(stored.topContributors),
+    totalBytes: stored.totalBytes ?? null,
+    topLevelEntries: array(stored.topLevelEntries),
+    directories: array(stored.directories),
+    extensions: array(stored.extensions),
+    largestFiles: array(stored.largestFiles),
+    workflowFiles: array(stored.workflowFiles),
+    otherCiFiles: array(stored.otherCiFiles),
+    testFileCount: stored.testFileCount ?? 0,
+    testFileSamples: array(stored.testFileSamples),
+    dependencyManifests: array(stored.dependencyManifests),
+    manifestPath: stored.manifestPath ?? null,
+    manifestExcerpt: stored.manifestExcerpt ?? null,
+    languageShare: stored.languageShare ?? {},
   };
 }

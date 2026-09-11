@@ -47,6 +47,17 @@ const supabase = createClient<Database>(url, serviceRoleKey, {
 const force = process.argv.includes("--force");
 
 /**
+ * Stop after this many applications, so a run fits inside one GitHub window.
+ *
+ * Eight requests per application against sixty an hour per IP address is
+ * seven applications, and the script is safe to run repeatedly because it
+ * skips anything already read. `npm run warm -- --limit 7` is the shape of a
+ * pass; without a GITHUB_TOKEN it is also the shape of an evening.
+ */
+const limitArg = process.argv.find((arg) => arg.startsWith("--limit="));
+const limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
+
+/**
  * Four at a time.
  *
  * Each application is two model calls and up to six GitHub requests, and both
@@ -75,7 +86,9 @@ async function main() {
   const { data: existing } = await supabase.from("application_insights").select("application_id");
   const already = new Set((existing ?? []).map((row) => row.application_id));
 
-  const queue = (applications as Row[]).filter((row) => force || !already.has(row.id));
+  const queue = (applications as Row[])
+    .filter((row) => force || !already.has(row.id))
+    .slice(0, Number.isFinite(limit) ? limit : undefined);
 
   console.log(
     `${applications.length} submitted applications, ${already.size} already read, ${queue.length} to do.`,

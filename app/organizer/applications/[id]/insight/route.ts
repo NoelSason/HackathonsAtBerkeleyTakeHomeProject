@@ -30,7 +30,7 @@ import type { Json } from "@/lib/database.types";
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Two model calls in parallel, plus six GitHub requests before them. Sixty
+// Two model calls in parallel, plus eight GitHub requests before them. Sixty
 // seconds is the platform default and is not comfortably clear of a slow one.
 export const maxDuration = 120;
 
@@ -62,23 +62,18 @@ export async function POST(
       try {
         const supabase = await createClient();
 
-        // A reviewer sees this only after recording their own judgement, for
-        // the same reason the queue hides an applicant's name until a score is
-        // in. Directors are deciding rather than blind-reading.
-        if (profile.staff_role !== "director") {
-          const { data: ownReview } = await supabase
-            .from("reviews")
-            .select("score")
-            .eq("application_id", id)
-            .eq("reviewer_id", profile.id)
-            .maybeSingle();
-
-          if (!ownReview) {
-            send({ type: "error", message: "Submit your own score first, then this becomes available." });
-            return;
-          }
-        }
-
+        /*
+         * Any organizer, with no requirement to have scored first.
+         *
+         * That requirement existed and was removed. It was modelled on the
+         * blind queue, and the analogy does not survive contact with this
+         * page: the detail page already shows the applicant's name, their
+         * school and every score another organizer has left, so gating a
+         * summary of the answers printed above it protected nothing.
+         *
+         * The anchoring defence lives where the page is actually blind. The
+         * review queue has no CalIntelligence panel and is not getting one.
+         */
         const { data: application } = await supabase
           .from("applications")
           .select("role, responses, status")

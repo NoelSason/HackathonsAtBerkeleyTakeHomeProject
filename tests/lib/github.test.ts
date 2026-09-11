@@ -172,6 +172,53 @@ describe("summariseTree", () => {
     expect(summariseTree(["tests/a.py"], true).truncated).toBe(true);
   });
 
+  describe("where the content is", () => {
+    /*
+     * A top-level listing says a `Sources` directory exists. It does not say
+     * that `Sources/PyodideKit` is where all the code lives while `scripts`
+     * holds one shell file, and that is the difference between naming a
+     * project's parts and describing it.
+     */
+    it("weighs directories by size, not just by name", () => {
+      const facts = summariseTree(
+        [
+          { path: "Sources/PyodideKit/Kernel.swift", bytes: 30_000 },
+          { path: "Sources/PyodideKit/Bootstrap.swift", bytes: 10_000 },
+          { path: "scripts/build.sh", bytes: 400 },
+          { path: "README.md", bytes: 11_000 },
+        ],
+        false,
+      );
+
+      expect(facts.directories[0]).toEqual({ path: "Sources/PyodideKit", files: 2, bytes: 40_000 });
+      expect(facts.directories[1]).toEqual({ path: "scripts", files: 1, bytes: 400 });
+      expect(facts.totalBytes).toBe(51_400);
+    });
+
+    it("counts file types", () => {
+      const facts = summariseTree(["a.swift", "b.swift", "c.ts", "Makefile"], false);
+      expect(facts.extensions[0]).toEqual({ ext: "swift", files: 2 });
+      expect(facts.extensions).toContainEqual({ ext: "(none)", files: 1 });
+    });
+
+    it("names the largest files, which is usually where the substance is", () => {
+      const facts = summariseTree(
+        [
+          { path: "small.ts", bytes: 100 },
+          { path: "big.ts", bytes: 90_000 },
+        ],
+        false,
+      );
+      expect(facts.largestFiles[0]).toEqual({ path: "big.ts", bytes: 90_000 });
+    });
+
+    // The old signature took plain paths and several call sites still read
+    // more naturally that way.
+    it("still accepts a plain list of paths", () => {
+      expect(summariseTree(["tests/a.py"], false).testFileCount).toBe(1);
+    });
+  });
+
   it("picks out the dependency manifests it recognises", () => {
     expect(
       summariseTree(["package.json", "go.mod", "src/vendor/package.json"], false)

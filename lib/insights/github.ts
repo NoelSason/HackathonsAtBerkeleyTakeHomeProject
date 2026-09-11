@@ -18,15 +18,32 @@
 const GITHUB_API = "https://api.github.com";
 
 /** Long enough for a slow response, short enough that a reviewer is not stranded. */
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 15_000;
+
+/**
+ * The file tree gets longer, because it is the one request that can be huge.
+ *
+ * A recursive tree for a large project is tens of thousands of entries and
+ * several megabytes, and ten seconds was not enough for it — a real reseed
+ * produced "GitHub did not answer for that repository" on an applicant who
+ * had linked a perfectly good one. Reporting our own timeout as a fact about
+ * their link is the same mistake as reporting our own rate limit that way.
+ */
+const TREE_TIMEOUT_MS = 30_000;
 
 export type Contributor = { login: string; commits: number };
+export type RecentCommit = { message: string; at: string; by: string | null };
+export type Directory = { path: string; files: number; bytes: number };
 
 export type RepoFacts = {
   owner: string;
   repo: string;
   url: string;
   description: string | null;
+  /** The repository's own labels, and the site it points at. */
+  topics: string[];
+  homepage: string | null;
+  hasPages: boolean;
 
   /** A repository under an organization cannot be "the applicant's account". */
   ownerType: "User" | "Organization" | "unknown";
@@ -43,13 +60,28 @@ export type RepoFacts = {
 
   stars: number;
   forks: number;
+  watchers: number;
   openIssues: number;
+  /** Kilobytes, as GitHub counts them. */
+  sizeKb: number;
 
   primaryLanguage: string | null;
   /** Language name to share of the codebase, rounded to a percentage. */
   languageShare: Record<string, number>;
 
   commitCount: number | null;
+  /**
+   * The most recent commit subjects.
+   *
+   * A commit log is the cheapest description of what somebody actually did,
+   * and it is written by them rather than about them. Two commits nine
+   * minutes apart and forty commits over three months are different projects
+   * with the same file count.
+   */
+  recentCommits: RecentCommit[];
+  /** Distinct days with a commit, among the ones read. */
+  activeDays: number | null;
+  firstCommitAt: string | null;
 
   /**
    * Authorship. The single most useful unanswered question about a linked
@@ -68,8 +100,15 @@ export type RepoFacts = {
 
   /** From the recursive tree, so a nested test suite is not invisible. */
   fileCount: number | null;
+  totalBytes: number | null;
   treeTruncated: boolean;
   topLevelEntries: string[];
+  /** Where the code actually is, by file count and size. */
+  directories: Directory[];
+  /** The file types present, most common first. */
+  extensions: { ext: string; files: number }[];
+  /** The biggest files, which is usually where the substance is. */
+  largestFiles: { path: string; bytes: number }[];
   /** Paths under .github/workflows, which is what CI actually means. */
   workflowFiles: string[];
   /** Other CI configuration, for projects that predate or avoid Actions. */
@@ -78,6 +117,9 @@ export type RepoFacts = {
   /** A handful of examples, so the count above can be checked. */
   testFileSamples: string[];
   dependencyManifests: string[];
+  /** The contents of the first manifest found, so the real dependencies show. */
+  manifestPath: string | null;
+  manifestExcerpt: string | null;
 
   readmeExcerpt: string | null;
   readmeChars: number | null;
@@ -182,7 +224,7 @@ function headers(accept = "application/vnd.github+json"): HeadersInit {
   };
 
   // Optional. Without it GitHub allows sixty requests an hour per IP, and one
-  // application costs six of them. On a shared serverless IP that is gone
+  // application costs eight of them. On a shared serverless IP that is gone
   // before the demo starts, which is why the rate-limited case above is a
   // first-class outcome rather than an error branch nobody expects to hit.
   const token = process.env.GITHUB_TOKEN;
@@ -193,11 +235,11 @@ function headers(accept = "application/vnd.github+json"): HeadersInit {
 
 type Fetched = { response: Response | null; failed: boolean };
 
-async function call(path: string, accept?: string): Promise<Fetched> {
+async function call(path: string, accept?: string, timeoutMs = TIMEOUT_MS): Promise<Fetched> {
   try {
     const response = await fetch(`${GITHUB_API}${path}`, {
       headers: headers(accept),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       // Repositories do not change during a review session, and the same
       // application may be opened by several reviewers in a row.
       next: { revalidate: 3600 },
@@ -224,8 +266,8 @@ function resetAt(response: Response): string | null {
   return Number.isFinite(seconds) ? new Date(seconds * 1000).toISOString() : null;
 }
 
-async function getJson<T>(path: string): Promise<T | null> {
-  const { response } = await call(path);
+async function getJson<T>(path: string, timeoutMs?: number): Promise<T | null> {
+  const { response } = await call(path, undefined, timeoutMs);
   if (!response || !response.ok) return null;
   try {
     return (await response.json()) as T;
@@ -241,11 +283,25 @@ async function getJson<T>(path: string): Promise<T | null> {
  * page whose number is the commit count. The same response body carries the
  * most recent commit, so the date and author come free.
  */
-async function fetchCommitSummary(
-  owner: string,
-  repo: string,
-): Promise<{ count: number | null; lastAt: string | null; lastBy: string | null }> {
-  const empty = { count: null, lastAt: null, lastBy: null };
+type CommitSummary = {
+  count: number | null;
+  lastAt: string | null;
+  lastBy: string | null;
+  firstAt: string | null;
+  activeDays: number | null;
+  recent: RecentCommit[];
+};
+
+async function fetchCommitSummary(owner: string, repo: string): Promise<CommitSummary> {
+  const empty: CommitSummary = {
+    count: null,
+    lastAt: null,
+    lastBy: null,
+    firstAt: null,
+    activeDays: null,
+    recent: [],
+  };
+
   const { response } = await call(`/repos/${owner}/${repo}/commits?per_page=1`);
   if (!response || !response.ok) return empty;
 
@@ -256,6 +312,8 @@ async function fetchCommitSummary(
     count = last ? Number(last[1]) : null;
   }
 
+  const log = await fetchRecentCommits(owner, repo);
+
   try {
     const body = (await response.json()) as CommitResponse[];
     const head = body[0];
@@ -263,10 +321,49 @@ async function fetchCommitSummary(
       count,
       lastAt: head?.commit?.author?.date ?? null,
       lastBy: head?.author?.login ?? head?.commit?.author?.name ?? null,
+      firstAt: log.firstAt,
+      activeDays: log.activeDays,
+      recent: log.recent,
     };
   } catch {
-    return { count, lastAt: null, lastBy: null };
+    return { ...empty, count, ...log };
   }
+}
+
+/**
+ * The last thirty commit subjects, and the shape of the history behind them.
+ *
+ * **A commit log is the cheapest description of what somebody actually did**,
+ * and unlike a README it is written as the work happens rather than
+ * afterwards. Two commits nine minutes apart and forty commits over three
+ * months are different projects with the same file count, and nothing else in
+ * these facts tells them apart.
+ *
+ * Thirty rather than a hundred because the subjects are what matter and a
+ * hundred of them is a page of prompt for a diminishing return.
+ */
+async function fetchRecentCommits(
+  owner: string,
+  repo: string,
+): Promise<{ recent: RecentCommit[]; activeDays: number | null; firstAt: string | null }> {
+  const body = await getJson<CommitResponse[]>(`/repos/${owner}/${repo}/commits?per_page=30`);
+  if (!body || !Array.isArray(body)) return { recent: [], activeDays: null, firstAt: null };
+
+  const recent = body.map((entry) => ({
+    // The subject line only. A commit body can be a page long and the subject
+    // is what a reviewer would skim.
+    message: (entry.commit?.message ?? "").split("\n")[0].slice(0, 140),
+    at: entry.commit?.author?.date ?? "",
+    by: entry.author?.login ?? entry.commit?.author?.name ?? null,
+  }));
+
+  const days = new Set(recent.map((entry) => entry.at.slice(0, 10)).filter(Boolean));
+
+  return {
+    recent,
+    activeDays: days.size || null,
+    firstAt: recent.at(-1)?.at || null,
+  };
 }
 
 /**
@@ -319,16 +416,20 @@ const OTHER_CI = [
   "appveyor.yml", ".drone.yml", "cloudbuild.yaml", "buildkite.yml",
 ];
 
-type TreeEntry = { path: string; type: string };
+type TreeEntry = { path: string; type: string; size?: number };
 
 export type TreeFacts = {
   fileCount: number | null;
+  totalBytes: number;
   truncated: boolean;
   workflowFiles: string[];
   otherCiFiles: string[];
   testFileCount: number;
   testFileSamples: string[];
   dependencyManifests: string[];
+  directories: Directory[];
+  extensions: { ext: string; files: number }[];
+  largestFiles: { path: string; bytes: number }[];
 };
 
 /**
@@ -344,10 +445,14 @@ export type TreeFacts = {
 async function fetchTree(owner: string, repo: string, branch: string): Promise<TreeFacts | null> {
   const body = await getJson<{ tree?: TreeEntry[]; truncated?: boolean }>(
     `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    TREE_TIMEOUT_MS,
   );
   if (!body?.tree) return null;
 
-  const files = body.tree.filter((entry) => entry.type === "blob").map((entry) => entry.path);
+  const files = body.tree
+    .filter((entry) => entry.type === "blob")
+    .map((entry) => ({ path: entry.path, bytes: entry.size ?? 0 }));
+
   return summariseTree(files, body.truncated === true);
 }
 
@@ -360,7 +465,15 @@ async function fetchTree(owner: string, repo: string, branch: string): Promise<T
  * nothing but an issue template, and tests used to be a top-level directory
  * name, which is false of every Go project ever written.
  */
-export function summariseTree(files: string[], truncated: boolean): TreeFacts {
+export function summariseTree(
+  input: readonly (string | { path: string; bytes: number })[],
+  truncated: boolean,
+): TreeFacts {
+  const entries = input.map((entry) =>
+    typeof entry === "string" ? { path: entry, bytes: 0 } : entry,
+  );
+  const files = entries.map((entry) => entry.path);
+
   const workflowFiles = files.filter((path) =>
     /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(path),
   );
@@ -371,19 +484,72 @@ export function summariseTree(files: string[], truncated: boolean): TreeFacts {
 
   const testFiles = files.filter((path) => TEST_DIRECTORY.test(path) || TEST_FILE.test(path));
 
+  /*
+   * Where the code actually is, rather than only what it is called.
+   *
+   * A list of top-level names says nothing about which of them holds the
+   * work. Two levels deep, counted and weighed, is the difference between
+   * "there is a Sources directory" and "Sources/PyodideKit is nine files and
+   * forty kilobytes of Swift, while scripts is one shell file".
+   */
+  const byDirectory = new Map<string, { files: number; bytes: number }>();
+  for (const entry of entries) {
+    const parts = entry.path.split("/");
+    if (parts.length < 2) continue;
+    const key = parts.slice(0, Math.min(2, parts.length - 1)).join("/");
+    const current = byDirectory.get(key) ?? { files: 0, bytes: 0 };
+    current.files += 1;
+    current.bytes += entry.bytes;
+    byDirectory.set(key, current);
+  }
+
+  const directories = [...byDirectory.entries()]
+    .map(([path, value]) => ({ path, files: value.files, bytes: value.bytes }))
+    .sort((a, b) => b.bytes - a.bytes || b.files - a.files)
+    .slice(0, 12);
+
+  const byExtension = new Map<string, number>();
+  for (const path of files) {
+    const name = path.split("/").at(-1) ?? "";
+    const dot = name.lastIndexOf(".");
+    const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "(none)";
+    byExtension.set(ext, (byExtension.get(ext) ?? 0) + 1);
+  }
+
+  const extensions = [...byExtension.entries()]
+    .map(([ext, count]) => ({ ext, files: count }))
+    .sort((a, b) => b.files - a.files)
+    .slice(0, 10);
+
+  const largestFiles = [...entries]
+    .filter((entry) => entry.bytes > 0)
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 6)
+    .map((entry) => ({ path: entry.path, bytes: entry.bytes }));
+
   return {
     fileCount: files.length,
+    totalBytes: entries.reduce((sum, entry) => sum + entry.bytes, 0),
     truncated,
     workflowFiles: workflowFiles.slice(0, 12),
     otherCiFiles: otherCiFiles.slice(0, 6),
     testFileCount: testFiles.length,
-    testFileSamples: testFiles.slice(0, 6),
+    testFileSamples: testFiles.slice(0, 8),
     dependencyManifests: [...new Set(files.filter((path) => MANIFESTS.has(path)))].slice(0, 8),
+    directories,
+    extensions,
+    largestFiles,
   };
 }
 
 type RepoResponse = {
   description: string | null;
+  topics?: string[];
+  homepage?: string | null;
+  has_pages?: boolean;
+  size?: number;
+  subscribers_count?: number;
+  watchers_count?: number;
   fork: boolean;
   parent?: { full_name: string } | null;
   archived: boolean;
@@ -399,7 +565,7 @@ type RepoResponse = {
 };
 
 type CommitResponse = {
-  commit?: { author?: { date?: string; name?: string } | null } | null;
+  commit?: { message?: string; author?: { date?: string; name?: string } | null } | null;
   author?: { login?: string } | null;
 };
 
@@ -421,9 +587,11 @@ const reads = new Map<string, { at: number; read: RepoRead }>();
 const READ_TTL_MS = 3_600_000;
 
 /**
- * Six requests: the repository, its languages, its contributors, its commit
- * count, its file tree and its README. They run in parallel after the first,
- * which has to land before the default branch is known.
+ * Eight requests: the repository, its languages, its contributors, its commit
+ * count, its last thirty commit subjects, its file tree, its dependency
+ * manifest and its README. All but the first run in parallel — the first has
+ * to land before the default branch is known — and the manifest waits on the
+ * tree, which is what tells it there is one.
  */
 export async function readRepository(owner: string, repo: string): Promise<RepoRead> {
   const key = `${owner.toLowerCase()}/${repo.toLowerCase()}`;
@@ -465,6 +633,12 @@ async function fetchRepository(owner: string, repo: string): Promise<RepoRead> {
     fetchReadme(owner, repo),
   ]);
 
+  // The dependency list is the one thing a file tree cannot tell you, and it
+  // is a good description of what was actually assembled. One request, and
+  // only when the tree found a manifest worth reading.
+  const manifestPath = tree?.dependencyManifests[0] ?? null;
+  const manifest = manifestPath ? await fetchTextFile(owner, repo, manifestPath) : null;
+
   // GitHub reports bytes per language. A percentage is what a reviewer can
   // actually reason about.
   const totalBytes = Object.values(languages ?? {}).reduce((sum, bytes) => sum + bytes, 0);
@@ -495,6 +669,9 @@ async function fetchRepository(owner: string, repo: string): Promise<RepoRead> {
       repo,
       url: `https://github.com/${owner}/${repo}`,
       description: repository.description,
+      topics: repository.topics ?? [],
+      homepage: repository.homepage || null,
+      hasPages: repository.has_pages === true,
       ownerType,
       isFork: repository.fork,
       forkedFrom: repository.parent?.full_name ?? null,
@@ -505,9 +682,14 @@ async function fetchRepository(owner: string, repo: string): Promise<RepoRead> {
       lastPushedAt: repository.pushed_at,
       lastCommitAt: commits.lastAt,
       lastCommitBy: commits.lastBy,
+      firstCommitAt: commits.firstAt,
+      activeDays: commits.activeDays,
+      recentCommits: commits.recent,
       stars: repository.stargazers_count,
       forks: repository.forks_count,
+      watchers: repository.subscribers_count ?? repository.watchers_count ?? 0,
       openIssues: repository.open_issues_count,
+      sizeKb: repository.size ?? 0,
       primaryLanguage: repository.language,
       languageShare,
       commitCount: commits.count,
@@ -520,13 +702,19 @@ async function fetchRepository(owner: string, repo: string): Promise<RepoRead> {
           ? Math.round(((ownerEntry?.commits ?? 0) / totalContributions) * 100)
           : null,
       fileCount: tree?.fileCount ?? null,
+      totalBytes: tree?.totalBytes ?? null,
       treeTruncated: tree?.truncated ?? false,
       topLevelEntries: (contents ?? []).map((entry) => entry.name).slice(0, 40),
+      directories: tree?.directories ?? [],
+      extensions: tree?.extensions ?? [],
+      largestFiles: tree?.largestFiles ?? [],
       workflowFiles: tree?.workflowFiles ?? [],
       otherCiFiles: tree?.otherCiFiles ?? [],
       testFileCount: tree?.testFileCount ?? 0,
       testFileSamples: tree?.testFileSamples ?? [],
       dependencyManifests: tree?.dependencyManifests ?? [],
+      manifestPath,
+      manifestExcerpt: manifest,
       readmeExcerpt: readme?.excerpt ?? null,
       readmeChars: readme?.length ?? null,
     },
@@ -545,9 +733,36 @@ async function fetchReadme(
 
   try {
     const text = await response.text();
-    // Enough to tell whether the README explains a real project, without
-    // spending the whole prompt budget on somebody's documentation.
-    return { excerpt: text.slice(0, 4000), length: text.length };
+    /*
+     * Twelve thousand characters, not four.
+     *
+     * Four kept the prompt small and it was the wrong trade. A README is the
+     * only place a repository explains itself in its own words, and on a
+     * project that documents its reasoning the first four thousand characters
+     * are the pitch — the part saying what was hard and what was decided
+     * comes after it. One real example ran to eleven thousand characters with
+     * everything specific past the cut, and the panel duly reported that the
+     * repository was "described only as an open source project".
+     *
+     * The cost is a few thousand input tokens on one of the two calls, which
+     * is a fraction of a cent.
+     */
+    return { excerpt: text.slice(0, 12000), length: text.length };
+  } catch {
+    return null;
+  }
+}
+
+/** One text file from the repository, capped. Used for the dependency manifest. */
+async function fetchTextFile(owner: string, repo: string, path: string): Promise<string | null> {
+  const { response } = await call(
+    `/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`,
+    "application/vnd.github.raw",
+  );
+  if (!response || !response.ok) return null;
+
+  try {
+    return (await response.text()).slice(0, 2500);
   } catch {
     return null;
   }

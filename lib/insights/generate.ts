@@ -53,6 +53,16 @@ const readingSchema = z.object({
 });
 
 const comparisonSchema = z.object({
+  /**
+   * What the repository is, in its own right.
+   *
+   * The three buckets below are all relative to the essay, which leaves a
+   * hole: when somebody writes one line about an "open source thing I made",
+   * everything real about the project lands under "not mentioned in the
+   * essay" and the panel never says plainly what the project is. A reviewer
+   * opening an application wants that first.
+   */
+  what_it_is: z.string(),
   corroborates: z.array(z.string()),
   adds: z.array(z.string()),
   discrepancies: z.array(z.string()),
@@ -86,7 +96,11 @@ For "claims", return at most five short quotations, copied CHARACTER FOR CHARACT
 
 const AUDITOR_SYSTEM = `${NEVER_SCORE}
 
-You are comparing what an applicant wrote with facts read from the repository they linked. The three buckets are distinct and an item belongs in exactly one:
+You are describing a repository an applicant linked, and comparing it with what they wrote.
+
+First, "what_it_is": three to five sentences describing the project itself, drawn from the README, the file tree, the dependency manifest and the commit log. Say what it does, what it is built with, how it is put together, and anything the repository documents about why it exists or what was difficult. This is description, not assessment — no judgement about whether the project is good, impressive or sufficient, and no comparison to other applicants. If the repository says almost nothing about itself, say that instead of inventing detail.
+
+Then the three buckets. They are distinct and an item belongs in exactly one:
 - corroborates: the essay claimed it, and the repository supports it.
 - adds: the repository shows it and the essay simply did not mention it. This is where unmentioned features, languages and tooling go. Not mentioning something is not a discrepancy.
 - discrepancies: the essay and the repository actively conflict, so that one of them must be wrong. State the mismatch neutrally and factually.
@@ -95,7 +109,9 @@ Do not accuse anyone of anything. A stale repository, a rewrite, a private main 
 
 The contributor figures are facts, not verdicts. "The repository has 214 contributors and the account in the link authored 3% of the commits" is a fact and belongs in whichever bucket it fits. "The applicant probably did not build this" is a judgement and must never appear. State the numbers and stop.
 
-Omit anything neither source says something meaningful about. "The essay does not discuss X and the repository does not have X" is not worth a reviewer's time.`;
+Omit anything neither source says something meaningful about. "The essay does not discuss X and the repository does not have X" is not worth a reviewer's time.
+
+Prefer the concrete. A commit log, a dependency manifest and a directory listing are evidence; adjectives are not. "Nine Swift files under Sources/PyodideKit and two test files" is worth a line. "A well-structured project" is not.`;
 
 /**
  * Applicant answers are untrusted input.
@@ -141,7 +157,7 @@ function escape(value: string): string {
 function describeRepo(facts: RepoFacts): string {
   const languages = Object.entries(facts.languageShare)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 5)
+    .slice(0, 6)
     .map(([name, share]) => `${name} ${share}%`)
     .join(", ");
 
@@ -149,38 +165,83 @@ function describeRepo(facts: RepoFacts): string {
     .map((entry) => `${entry.login} (${entry.commits})`)
     .join(", ");
 
+  const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
   const lines = [
     `repository: ${facts.owner}/${facts.repo}`,
     `the account in the link is a ${facts.ownerType === "Organization" ? "GitHub organization, not a person" : facts.ownerType === "User" ? "personal account" : "GitHub account of unknown kind"}`,
     `description: ${facts.description ?? "none"}`,
+    `topics: ${facts.topics.join(", ") || "none"}`,
+    `homepage: ${facts.homepage ?? "none"}${facts.hasPages ? " (and a GitHub Pages site)" : ""}`,
     `is a fork: ${facts.isFork}${facts.forkedFrom ? ` (of ${facts.forkedFrom})` : ""}`,
     `archived: ${facts.isArchived}`,
     `license: ${facts.license ?? "none declared"}`,
+    "",
     `created: ${facts.createdAt}`,
     `last pushed: ${facts.lastPushedAt}`,
     `last commit: ${facts.lastCommitAt ?? "unknown"}${facts.lastCommitBy ? ` by ${facts.lastCommitBy}` : ""}`,
     `total commits: ${facts.commitCount ?? "unknown"}`,
+    facts.activeDays !== null
+      ? `among the ${facts.recentCommits.length} most recent commits, work falls on ${facts.activeDays} distinct ${facts.activeDays === 1 ? "day" : "days"}, the earliest of them ${facts.firstCommitAt || "unknown"}`
+      : "commit dates: unknown",
+    "",
     `contributors: ${facts.contributorCount}${facts.moreContributors ? " or more (only the first page was read)" : ""}`,
     `most active contributors by commit count: ${contributors || "none reported"}`,
     facts.ownerCommitShare !== null
       ? `commits by ${facts.owner}, the account in the link: ${facts.ownerCommits} of the commits counted here, about ${facts.ownerCommitShare}%`
       : "share of commits by the account in the link: not applicable, the repository belongs to an organization",
-    `stars: ${facts.stars}, forks: ${facts.forks}, open issues: ${facts.openIssues}`,
+    "",
+    `stars: ${facts.stars}, forks: ${facts.forks}, watchers: ${facts.watchers}, open issues: ${facts.openIssues}`,
     `languages: ${languages || "none reported"}`,
-    `files in the default branch: ${facts.fileCount ?? "unknown"}${facts.treeTruncated ? " (the file list was truncated by GitHub, so counts below are lower bounds)" : ""}`,
+    `size: ${facts.sizeKb} KB as GitHub counts it`,
+    `files in the default branch: ${facts.fileCount ?? "unknown"}${facts.totalBytes ? `, ${kb(facts.totalBytes)} of content` : ""}${facts.treeTruncated ? " (the file list was truncated by GitHub, so counts below are lower bounds)" : ""}`,
+    `file types: ${facts.extensions.map((entry) => `${entry.ext} ×${entry.files}`).join(", ") || "none"}`,
     `files that look like tests: ${facts.testFileCount}${facts.testFileSamples.length ? ` — for example ${facts.testFileSamples.join(", ")}` : ""}`,
     `GitHub Actions workflows: ${facts.workflowFiles.length ? facts.workflowFiles.join(", ") : "none"}`,
     `other CI configuration: ${facts.otherCiFiles.length ? facts.otherCiFiles.join(", ") : "none"}`,
-    `dependency manifests: ${facts.dependencyManifests.join(", ") || "none found"}`,
     `top level: ${facts.topLevelEntries.join(", ") || "empty"}`,
   ];
 
+  if (facts.directories.length) {
+    lines.push(
+      "",
+      "where the content is, by directory:",
+      ...facts.directories.map(
+        (entry) => `  ${entry.path}: ${entry.files} ${entry.files === 1 ? "file" : "files"}, ${kb(entry.bytes)}`,
+      ),
+    );
+  }
+
+  if (facts.largestFiles.length) {
+    lines.push(
+      "",
+      "largest files:",
+      ...facts.largestFiles.map((entry) => `  ${entry.path} (${kb(entry.bytes)})`),
+    );
+  }
+
+  if (facts.recentCommits.length) {
+    lines.push(
+      "",
+      `the ${facts.recentCommits.length} most recent commit subjects, newest first:`,
+      ...facts.recentCommits.map(
+        (entry) => `  ${entry.at.slice(0, 10)} ${entry.by ?? "unknown"}: ${entry.message}`,
+      ),
+    );
+  }
+
+  if (facts.manifestExcerpt && facts.manifestPath) {
+    lines.push("", `${facts.manifestPath}:`, facts.manifestExcerpt);
+  }
+
   if (facts.readmeExcerpt) {
     lines.push(
-      `\nREADME, first ${facts.readmeExcerpt.length} of ${facts.readmeChars} characters:\n${facts.readmeExcerpt}`,
+      "",
+      `README, first ${facts.readmeExcerpt.length} of ${facts.readmeChars} characters:`,
+      facts.readmeExcerpt,
     );
   } else {
-    lines.push("readme: none");
+    lines.push("", "readme: none");
   }
 
   return lines.join("\n");

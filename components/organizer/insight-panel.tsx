@@ -241,14 +241,10 @@ export function InsightPanel({
             up against what was claimed. It never scores an applicant or suggests a decision.
           </p>
 
-          {canGenerate ? (
+          {canGenerate && (
             <Button type="button" onClick={generate} disabled={busy} className="mt-4" size="sm">
               {busy ? "Reading…" : "Read this application"}
             </Button>
-          ) : (
-            <p className="mt-3 text-[13px] font-medium text-muted">
-              Submit your own score first, then this becomes available.
-            </p>
           )}
         </div>
       )}
@@ -436,6 +432,10 @@ function RepositorySection({
 
       {facts && <RepoHighlights facts={facts} />}
 
+      {findings?.what_it_is && (
+        <p className="mt-3.5 max-w-160 text-[13px] leading-relaxed">{findings.what_it_is}</p>
+      )}
+
       {findings ? (
         <div className="mt-4 space-y-3">
           <FindingList label="Backs up the essay" tone="positive" items={findings.corroborates} />
@@ -513,6 +513,14 @@ function RepoHighlights({ facts }: { facts: RepoFacts }) {
   }
 
   items.push({
+    label: "Files",
+    value:
+      facts.fileCount === null
+        ? "unknown"
+        : `${facts.fileCount}${facts.treeTruncated ? "+" : ""}${facts.totalBytes ? ` · ${formatBytes(facts.totalBytes)}` : ""}`,
+  });
+
+  items.push({
     label: "Test files",
     value: facts.treeTruncated ? `${facts.testFileCount}+` : String(facts.testFileCount),
   });
@@ -528,11 +536,40 @@ function RepoHighlights({ facts }: { facts: RepoFacts }) {
   });
 
   items.push({
+    label: "Languages",
+    value:
+      Object.entries(facts.languageShare)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([name, share]) => `${name} ${share}%`)
+        .join(" · ") || "none",
+  });
+
+  // How long it was worked on, not only when it last was. Two commits nine
+  // minutes apart and forty over three months read very differently, and
+  // "last commit" alone cannot tell them apart.
+  items.push({
+    label: "Worked on",
+    value:
+      facts.activeDays === null
+        ? "unknown"
+        : `${facts.activeDays} ${facts.activeDays === 1 ? "day" : "days"}${
+            facts.recentCommits.length ? ` in last ${facts.recentCommits.length}` : ""
+          }`,
+  });
+
+  items.push({
     label: "Last commit",
     value: facts.lastCommitAt
       ? inEventZone(facts.lastCommitAt, { month: "short", day: "numeric", year: "numeric" })
       : "unknown",
   });
+
+  const notes: string[] = [];
+  if (facts.isFork) notes.push(`A fork${facts.forkedFrom ? ` of ${facts.forkedFrom}` : ""}.`);
+  if (facts.isArchived) notes.push("Archived on GitHub.");
+  if (facts.license) notes.push(`${facts.license} licensed.`);
+  if (facts.stars || facts.forks) notes.push(`${facts.stars} stars, ${facts.forks} forks.`);
 
   return (
     <>
@@ -545,16 +582,31 @@ function RepoHighlights({ facts }: { facts: RepoFacts }) {
         ))}
       </dl>
 
-      {(facts.isFork || facts.isArchived) && (
-        <p className="mt-2.5 text-[12px] text-muted">
-          {facts.isFork && (
-            <>A fork{facts.forkedFrom ? ` of ${facts.forkedFrom}` : ""}. </>
-          )}
-          {facts.isArchived && <>Archived on GitHub. </>}
-        </p>
+      {facts.directories.length > 0 && (
+        <div className="mt-3.5">
+          <p className="text-[11px] text-faint">Where the content is</p>
+          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            {facts.directories.slice(0, 6).map((entry) => (
+              <li key={entry.path} className="font-mono text-[12px] text-muted">
+                {entry.path}{" "}
+                <span className="text-faint">
+                  {entry.files}f · {formatBytes(entry.bytes)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
+
+      {notes.length > 0 && <p className="mt-2.5 text-[12px] text-muted">{notes.join(" ")}</p>}
     </>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }
 
 function FindingList({

@@ -163,10 +163,17 @@ applications:
   repository facts sit on the same page, so a reviewer checks the model's
   reading rather than trusting it.
 
-It is gated on the reviewer having already submitted their own score, unless
-they are a director. Same principle as revealing identity in the queue: form
-your own judgement first. It is deliberately absent from the blind queue
-entirely.
+**It is deliberately absent from the blind queue**, which is the only place
+this product is actually blind. It is open to any organizer on the detail
+page, and an earlier version was not: that page already shows the applicant's
+name, their school and every score another organizer has left, so requiring a
+reviewer to score before reading a summary of the answers printed above it
+protected nothing the page had not already given away.
+
+It cannot be added to the queue either, even if the anchoring argument were
+set aside: the repository facts contain the applicant's GitHub account name,
+because the URL is their account name, and the queue cannot generalise that
+the way it generalises a school.
 
 **Two calls, in parallel, with different information.** The reader sees only
 the written answers and produces the summary, the rating and the quotations.
@@ -193,17 +200,32 @@ what stops a portfolio field reading
 `http://169.254.169.254/latest/meta-data/` from having the server fetch cloud
 metadata.
 
-**What it reads from a repository.** Six requests: the repository, its
-languages, its contributors, its commit count, its full file tree and its
-README. The file tree is what makes the test and CI figures true rather than
-guessed — continuous integration means a workflow file under
-`.github/workflows`, not the presence of a `.github` directory, and a test
-suite is found wherever it lives rather than only in a top-level `tests`
-folder. The contributor list answers the question nothing else did: how much
-of this repository is the linked account's work. Those are reported as
-figures, never as a conclusion, because "214 contributors and 3% of the
-commits" is a fact and "they probably did not build this" is the reviewer's
-call.
+**What it reads from a repository.** Eight requests: the repository, its
+languages, its contributors, its commit count, its last thirty commit
+subjects, its full file tree, its dependency manifest and its README.
+
+The file tree is what makes the test and CI figures true rather than guessed —
+continuous integration means a workflow file under `.github/workflows`, not
+the presence of a `.github` directory, and a test suite is found wherever it
+lives rather than only in a top-level `tests` folder. The same response gives
+the directory breakdown, the file-type histogram and the largest files, so the
+panel can say where the content actually is rather than only what the
+top-level folders are called.
+
+The commit log is the cheapest description of what somebody did, and unlike a
+README it is written as the work happens. The contributor list answers the
+question nothing else did: how much of this repository is the linked account's
+work. Those are reported as figures, never as a conclusion, because "214
+contributors and 3% of the commits" is a fact and "they probably did not build
+this" is the reviewer's call.
+
+**It also says what the project is.** The three comparison lists are all
+relative to the essay, which leaves a hole: when an applicant writes one line,
+everything true about their project lands under "not mentioned in the essay"
+and nothing says plainly what it is. A short description drawn from the
+README, the file tree, the manifest and the commit log sits above them. It is
+description and not assessment — the prompt forbids any judgement of whether a
+project is good, and prefers a commit log to an adjective.
 
 **A link that is not a repository says so.** A GitHub profile with no
 repository, a Devpost page, a repository that does not exist, and one GitHub
@@ -235,7 +257,7 @@ rubric doing what it claims. It has still never been compared against human
 reviewers, and that remains the honest limit of the claim.
 
 **Rate limiting lives in Postgres.** Each press is two model calls plus up to
-six GitHub requests: roughly two cents and seventeen seconds.
+eight GitHub requests: roughly two cents and seventeen seconds.
 `claim_insight_budget()` allows fifty readings a day per organizer and
 refuses to regenerate one less than five minutes old, and the cooldown is
 checked *before* the counter is touched, so the case that actually happens —
