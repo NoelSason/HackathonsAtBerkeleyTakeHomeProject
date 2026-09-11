@@ -8,7 +8,7 @@ import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function SignInForm({ next }: { next: string }) {
+export function SignInForm({ next }: { next: string | null }) {
   const [state, formAction, isPending] = useActionState(signIn, EMPTY_AUTH_STATE);
 
   // Controlled so the demo buttons can fill the fields. Two pieces of state
@@ -22,7 +22,7 @@ export function SignInForm({ next }: { next: string }) {
       <p className="mt-2 text-muted">Applicants and organizers use the same door.</p>
 
       <form action={formAction} className="mt-9 space-y-5">
-        <input type="hidden" name="next" value={next} />
+        {next && <input type="hidden" name="next" value={next} />}
 
         <div>
           <label htmlFor="email" className="mb-1.5 block text-[13px] font-semibold">
